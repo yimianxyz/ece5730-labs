@@ -130,8 +130,13 @@ unsigned int button = 0x70 ;
 char keytext[40];
 int prev_key = 0;
 
+// State machine variables to control beeps
+volatile enum {BEEP_OFF, BEEP_ON} beep_state = BEEP_OFF ;
+
 // This timer ISR is called on core 0
 bool repeating_timer_callback_core_0(struct repeating_timer *t) {
+
+    if (beep_state == BEEP_OFF) return true ;
 
     if (STATE_0 == 0) {
         // DDS phase and sine table lookup
@@ -217,6 +222,14 @@ static PT_THREAD (protothread_core_0(struct pt *pt))
         }
         // Otherwise, indicate invalid/non-pressed buttons
         else (i=-1) ;
+
+        if(i != -1) {
+            // Set beep state to on
+            beep_state = BEEP_ON ;
+        } else {
+            // Set beep state to off
+            beep_state = BEEP_OFF ;
+        }
 
         // Write key to VGA
         if (i != prev_key) {
