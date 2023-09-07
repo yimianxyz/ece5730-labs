@@ -176,6 +176,7 @@ bool repeating_timer_callback_core_0(struct repeating_timer *t) {
             current_amplitude_0 = 0 ;
             STATE_0 = 0 ;
             count_0 = 0 ;
+            beep_state = BEEP_OFF ;
         }
     }
 
