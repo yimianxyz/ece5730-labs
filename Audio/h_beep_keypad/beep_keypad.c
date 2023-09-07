@@ -194,6 +194,7 @@ static PT_THREAD (protothread_core_0(struct pt *pt))
 
     // Some variables
     static int i ;
+    static int fi ;
     static uint32_t keypad ;
 
     
@@ -270,12 +271,12 @@ static PT_THREAD (protothread_core_0(struct pt *pt))
         i = confirmed_key ;
 
 
-        if(i != -1) {
+        if(i != -1 && i != fi) {
             // Set beep state to on
             beep_state = BEEP_ON ;
         } else {
             // Set beep state to off
-            beep_state = BEEP_OFF ;
+            //beep_state = BEEP_OFF ;
         }
 
         // Write key to VGA
@@ -290,6 +291,9 @@ static PT_THREAD (protothread_core_0(struct pt *pt))
 
         // Print key to terminal
         printf("\n%d", i) ;
+
+        // save previous state
+        fi = i ;
 
         PT_YIELD_usec(30000) ;
     }
