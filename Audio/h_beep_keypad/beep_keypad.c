@@ -83,7 +83,7 @@ fix15 current_amplitude_1 = 0 ;         // current amplitude (modified in ISR)
 #define DECAY_TIME              1000
 #define SUSTAIN_TIME            3720
 #define BEEP_DURATION           5720
-#define BEEP_REPEAT_INTERVAL    40000
+#define BEEP_REPEAT_INTERVAL    4000
 
 // State machine variables
 volatile unsigned int STATE_0 = 0 ;
@@ -107,6 +107,9 @@ uint16_t DAC_data_0 ; // output value
 #define LDAC     8
 #define LED      25
 #define SPI_PORT spi0
+
+#define MEASURE_ISR_GPIO      16
+
 
 // Two variables to store core number
 volatile int corenum_0  ;
@@ -133,14 +136,28 @@ int prev_key = 0;
 // State machine variables to control beeps
 volatile enum {BEEP_OFF, BEEP_ON} beep_state = BEEP_OFF ;
 
+//keypad type 1 or 2
+volatile int type;
+
 // This timer ISR is called on core 0
 bool repeating_timer_callback_core_0(struct repeating_timer *t) {
 
     if (beep_state == BEEP_OFF) return true ;
 
+    //set gpio to 1
+    gpio_put(MEASURE_ISR_GPIO, 1) ;
+
     if (STATE_0 == 0) {
         // Update phase_incr_main_0 to change frequency
-        phase_incr_main_0 = ((-260*sin((-3.14/5720)*count_0) + 1740)*two32)/Fs ;
+        if(type == 1){
+            phase_incr_main_0 = ((-260*sin((-3.14/5720)*count_0) + 1740)*two32)/Fs ;
+        }
+        else if(type == 2){
+            phase_incr_main_0 = (((1.84*(0.0001)*count_0*count_0) + 2000)*two32)/Fs ;
+        }
+        else {
+            phase_incr_main_0 = (400.0*two32)/Fs ;
+        }
 
         // DDS phase and sine table lookup
         phase_accum_main_0 += phase_incr_main_0  ;
@@ -185,6 +202,9 @@ bool repeating_timer_callback_core_0(struct repeating_timer *t) {
 
     // retrieve core number of execution
     corenum_0 = get_core_num() ;
+
+    //set gpio to 0
+    gpio_put(MEASURE_ISR_GPIO, 0) ;
 
     return true;
 }
@@ -277,6 +297,7 @@ static PT_THREAD (protothread_core_0(struct pt *pt))
         if(i != -1 && i != fi) {
             // Set beep state to on
             beep_state = BEEP_ON ;
+            type = i ;
         } else {
             // Set beep state to off
             //beep_state = BEEP_OFF ;
@@ -354,6 +375,12 @@ int main() {
     gpio_set_dir(LED, GPIO_OUT) ;
     gpio_put(LED, 0) ;
     
+
+    // Map MEASURE_ISR_GPIO to GPIO port, make it low
+    gpio_init(MEASURE_ISR_GPIO) ;
+    gpio_set_dir(MEASURE_ISR_GPIO, GPIO_OUT) ;
+    gpio_put(MEASURE_ISR_GPIO, 0) ;
+
     // set up increments for calculating bow envelope
     attack_inc = divfix(max_amplitude, int2fix15(ATTACK_TIME)) ;
     decay_inc =  divfix(max_amplitude, int2fix15(DECAY_TIME)) ;
