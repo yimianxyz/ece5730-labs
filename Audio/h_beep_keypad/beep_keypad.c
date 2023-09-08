@@ -56,7 +56,7 @@ typedef signed int fix15 ;
 
 //Direct Digital Synthesis (DDS) parameters
 #define two32 4294967296.0  // 2^32 (a constant)
-#define Fs 40000            // sample rate
+#define Fs 44000            // sample rate
 
 // the DDS units - core 0
 // Phase accumulator and phase increment. Increment sets output frequency.
@@ -79,10 +79,10 @@ fix15 current_amplitude_0 = 0 ;         // current amplitude (modified in ISR)
 fix15 current_amplitude_1 = 0 ;         // current amplitude (modified in ISR)
 
 // Timing parameters for beeps (units of interrupts)
-#define ATTACK_TIME             200
-#define DECAY_TIME              200
-#define SUSTAIN_TIME            10000
-#define BEEP_DURATION           10400
+#define ATTACK_TIME             1000
+#define DECAY_TIME              1000
+#define SUSTAIN_TIME            3720
+#define BEEP_DURATION           5720
 #define BEEP_REPEAT_INTERVAL    40000
 
 // State machine variables
@@ -139,6 +139,9 @@ bool repeating_timer_callback_core_0(struct repeating_timer *t) {
     if (beep_state == BEEP_OFF) return true ;
 
     if (STATE_0 == 0) {
+        // Update phase_incr_main_0 to change frequency
+        phase_incr_main_0 = ((-260*sin((-3.14/5720)*count_0) + 1740)*two32)/Fs ;
+
         // DDS phase and sine table lookup
         phase_accum_main_0 += phase_incr_main_0  ;
         DAC_output_0 = fix2int15(multfix15(current_amplitude_0,
@@ -166,6 +169,7 @@ bool repeating_timer_callback_core_0(struct repeating_timer *t) {
         if (count_0 == BEEP_DURATION) {
             STATE_0 = 1 ;
             count_0 = 0 ;
+            beep_state = BEEP_OFF ;
         }
     }
 
@@ -176,7 +180,6 @@ bool repeating_timer_callback_core_0(struct repeating_timer *t) {
             current_amplitude_0 = 0 ;
             STATE_0 = 0 ;
             count_0 = 0 ;
-            beep_state = BEEP_OFF ;
         }
     }
 
