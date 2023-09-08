@@ -133,6 +133,15 @@ unsigned int button = 0x70 ;
 char keytext[40];
 int prev_key = 0;
 
+//play mode/ record mode
+enum {PLAY, RECORD} mode = PLAY;
+
+//queue for play and record
+unsigned long long queue_play = 0;
+unsigned long long queue_record = 0;
+
+
+
 // State machine variables to control beeps
 volatile enum {BEEP_OFF, BEEP_ON} beep_state = BEEP_OFF ;
 
@@ -186,7 +195,11 @@ bool repeating_timer_callback_core_0(struct repeating_timer *t) {
         if (count_0 == BEEP_DURATION) {
             STATE_0 = 1 ;
             count_0 = 0 ;
-            beep_state = BEEP_OFF ;
+            type = queue_play & 0xF;
+            queue_play = queue_play >> 4;
+            if(type == 0){
+                beep_state = BEEP_OFF ;
+            }
         }
     }
 
@@ -197,6 +210,8 @@ bool repeating_timer_callback_core_0(struct repeating_timer *t) {
             current_amplitude_0 = 0 ;
             STATE_0 = 0 ;
             count_0 = 0 ;
+            type = queue_play & 0xF;
+            queue_play = queue_play >> 4;
         }
     }
 
@@ -296,8 +311,23 @@ static PT_THREAD (protothread_core_0(struct pt *pt))
 
         if(i != -1 && i != fi) {
             // Set beep state to on
-            beep_state = BEEP_ON ;
-            type = i ;
+            if (i == 10){
+                mode = RECORD;
+                queue_record = 0;
+            }else if (i == 11){
+                mode = PLAY;
+                queue_play = queue_record;
+            }else if (mode == PLAY){
+                queue_play = i;
+                beep_state = BEEP_ON ;
+            }else if (mode == RECORD){
+                queue_record = queue_record << 4;
+                queue_record = queue_record | i;
+                queue_play = i;
+                beep_state = BEEP_ON ;
+            }
+
+
         } else {
             // Set beep state to off
             //beep_state = BEEP_OFF ;
