@@ -110,6 +110,8 @@ uint16_t DAC_data_0 ; // output value
 
 #define MEASURE_ISR_GPIO      16
 
+#define mask 0x000000000000000F
+
 
 // Two variables to store core number
 volatile int corenum_0  ;
@@ -197,28 +199,26 @@ bool repeating_timer_callback_core_0(struct repeating_timer *t) {
         if (count_0 == BEEP_DURATION) {
             STATE_0 = 1 ;
             count_0 = 0 ;
+
+            type = queue_play & (mask << (4*(--queue_play_length)));
+            type = type >> (queue_play_length<<2);
+            printf("\nxx%x",type);
+
             if(queue_play_length <= 0){
                 beep_state = BEEP_OFF ;
             }
-            else{
-                type = queue_play & (0xF << (4*(--queue_play_length)));
-            }
-            // queue_play = queue_play >> 4;
-            // if(queue_play_length == 0){
-            //     beep_state = BEEP_OFF ;
-            // }
+
         }
     }
 
     // State transition?
     else {
-        count_0 += 1 ;
-        if (count_0 == BEEP_REPEAT_INTERVAL) {
-            current_amplitude_0 = 0 ;
-            STATE_0 = 0 ;
-            count_0 = 0 ;
-            type = queue_play & (0xF << (4*(--queue_play_length)));
-        }
+        current_amplitude_0 = 0 ;
+        STATE_0 = 0 ;
+        count_0 = 0 ;
+        type = queue_play & (mask << (4*(queue_play_length-1)));
+        type = type >> ((queue_play_length-1)<<2);
+        printf("\nyy%x",type);
     }
 
     // retrieve core number of execution
