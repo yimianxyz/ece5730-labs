@@ -134,11 +134,13 @@ char keytext[40];
 int prev_key = 0;
 
 //play mode/ record mode
-enum {PLAY, RECORD} mode = PLAY;
+volatile enum {PLAY, RECORD} mode = PLAY;
 
 //queue for play and record
-unsigned long long queue_play = 0;
-unsigned long long queue_record = 0;
+volatile unsigned long long queue_play = 0;
+volatile unsigned long long queue_record = 0;
+volatile int queue_play_length = 0;
+volatile int queue_record_length = 0;
 
 
 
@@ -150,7 +152,7 @@ volatile int type;
 
 // This timer ISR is called on core 0
 bool repeating_timer_callback_core_0(struct repeating_timer *t) {
-
+    
     if (beep_state == BEEP_OFF) return true ;
 
     //set gpio to 1
@@ -195,11 +197,16 @@ bool repeating_timer_callback_core_0(struct repeating_timer *t) {
         if (count_0 == BEEP_DURATION) {
             STATE_0 = 1 ;
             count_0 = 0 ;
-            type = queue_play & 0xF;
-            queue_play = queue_play >> 4;
-            if(type == 0){
+            if(queue_play_length <= 0){
                 beep_state = BEEP_OFF ;
             }
+            else{
+                type = queue_play & (0xF << (4*(--queue_play_length)));
+            }
+            // queue_play = queue_play >> 4;
+            // if(queue_play_length == 0){
+            //     beep_state = BEEP_OFF ;
+            // }
         }
     }
 
@@ -210,8 +217,7 @@ bool repeating_timer_callback_core_0(struct repeating_timer *t) {
             current_amplitude_0 = 0 ;
             STATE_0 = 0 ;
             count_0 = 0 ;
-            type = queue_play & 0xF;
-            queue_play = queue_play >> 4;
+            type = queue_play & (0xF << (4*(--queue_play_length)));
         }
     }
 
@@ -314,16 +320,23 @@ static PT_THREAD (protothread_core_0(struct pt *pt))
             if (i == 10){
                 mode = RECORD;
                 queue_record = 0;
+                queue_record_length = 0;
             }else if (i == 11){
                 mode = PLAY;
                 queue_play = queue_record;
+                queue_play_length = queue_record_length;
+                beep_state = BEEP_ON;
+                printf("\n%x", queue_record) ;
             }else if (mode == PLAY){
                 queue_play = i;
+                queue_play_length = 1;
                 beep_state = BEEP_ON ;
             }else if (mode == RECORD){
                 queue_record = queue_record << 4;
                 queue_record = queue_record | i;
+                queue_record_length ++;
                 queue_play = i;
+                queue_play_length = 1;
                 beep_state = BEEP_ON ;
             }
 
