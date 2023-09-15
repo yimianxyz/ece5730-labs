@@ -183,7 +183,7 @@ bool repeating_timer_callback_core_0(struct repeating_timer *t) {
     if (STATE_0 == 0) {
         // Update phase_incr_main_0 to change frequency
         if(type == 1){
-            phase_incr_main_0 = ((-260*sin((-3.14/5720)*count_0) + 1740)*two32)/Fs ;
+            phase_incr_main_0 = ((-260*sin((-M_PI/5200)*count_0) + 1740)*two32)/Fs ;
         }
         else if(type == 2){
             phase_incr_main_0 = (((1.84*(0.0001)*count_0*count_0) + 2000)*two32)/Fs ;
