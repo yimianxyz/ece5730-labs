@@ -188,6 +188,15 @@ bool repeating_timer_callback_core_0(struct repeating_timer *t) {
         else if(type == 2){
             phase_incr_main_0 = (((1.84*(0.0001)*count_0*count_0) + 2000)*two32)/Fs ;
         }
+        else if(type == 4){
+            phase_accum_main_0 = ((-0.3846*count_0 + 5000)*two32)/Fs ;
+        }
+        else if(type == 5){
+            phase_accum_main_0 = ((-0.2115*count_0 + 2800)*two32)/Fs ;
+        }
+        else if(type == 6){
+            phase_accum_main_0 = ((-7.39*(0.00001) * count_0 * count_0 + 0.3846 * count_0 + 1600 )*two32)/Fs ;
+        }
         else {
             phase_incr_main_0 = 0;
         }
