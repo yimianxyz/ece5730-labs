@@ -86,7 +86,7 @@ fix15 current_amplitude_1 = 0 ;         // current amplitude (modified in ISR)
 #define BEEP_REPEAT_INTERVAL    4000
 
 // State machine variables
-volatile unsigned int STATE_0 = 0 ;
+volatile unsigned int STATE_0 = 1 ;
 volatile unsigned int count_0 = 0 ;
 
 // SPI data
@@ -138,17 +138,30 @@ int prev_key = 0;
 //play mode/ record mode
 volatile enum {PLAY, RECORD} mode = PLAY;
 
+#define QUEUE_LENGTH 100
+
 //queue array for play and record
-volatile int queue_play[100];
+volatile int queue_play[QUEUE_LENGTH];
 volatile int queue_play_length = 0;
-volatile int queue_record[100];
+volatile int queue_record[QUEUE_LENGTH];
 volatile int queue_record_length = 0;
 
-void copy_queue(int *queue1, int *queue2){
+void copy_queue(volatile int *queue1, volatile int *queue2){
     int i;
-    for(i = 0; i < queue1[0]; i++){
+    for(i = 0; i < QUEUE_LENGTH; i++){
         queue2[i] = queue1[i];
     }
+}
+
+int dequeue(volatile int *queue){
+    int i;
+    int o = queue[0];
+    for(int i = 0; i < QUEUE_LENGTH - 1; i++){
+        queue[i] = queue[i+1];
+    }
+
+    queue[QUEUE_LENGTH-1] = 0;
+    return o;
 }
 
 
@@ -207,7 +220,7 @@ bool repeating_timer_callback_core_0(struct repeating_timer *t) {
             STATE_0 = 1 ;
             count_0 = 0 ;
 
-            type = queue_play[queue_play_length-1];
+            type = dequeue(queue_play);
             queue_play_length--;
 
 
@@ -225,7 +238,7 @@ bool repeating_timer_callback_core_0(struct repeating_timer *t) {
         current_amplitude_0 = 0 ;
         STATE_0 = 0 ;
         count_0 = 0 ;
-        type = queue_play[queue_play_length-1];
+        type = queue_play[0];
         printf("\nyy%x",type);
     }
 
