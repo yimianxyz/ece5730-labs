@@ -189,7 +189,7 @@ bool repeating_timer_callback_core_0(struct repeating_timer *t) {
             phase_incr_main_0 = (((1.84*(0.0001)*count_0*count_0) + 2000)*two32)/Fs ;
         }
         else {
-            phase_incr_main_0 = (400.0*two32)/Fs ;
+            phase_incr_main_0 = 0;
         }
 
         // DDS phase and sine table lookup
