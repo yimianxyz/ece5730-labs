@@ -280,7 +280,7 @@ static PT_THREAD (protothread_core_0(struct pt *pt))
 
     while(1) {
 
-        gpio_put(LED, !gpio_get(LED)) ;
+        // gpio_put(LED, !gpio_get(LED)) ;
 
         // Scan the keypad!
         for (i=0; i<KEYROWS; i++) {
@@ -350,12 +350,14 @@ static PT_THREAD (protothread_core_0(struct pt *pt))
             if (i == 10){
                 mode = RECORD;
                 queue_record_length = 0;
+                gpio_put(LED, 1) ;
             }else if (i == 11){
                 mode = PLAY;
                 copy_queue(queue_record, queue_play);
                 queue_play_length = queue_record_length;
                 beep_state = BEEP_ON;
                 printf("\n%x", queue_record) ;
+                gpio_put(LED, 0) ;
             }else if (mode == PLAY){
                 queue_play[0] = i;
                 queue_play_length = 1;
