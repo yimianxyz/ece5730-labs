@@ -68,6 +68,8 @@ typedef signed int fix15 ;
 // the color of the boid
 char color = WHITE ;
 
+// modes
+fix15 wallMode = int2fix15(0);
 
 //factors
 fix15 turnfactor = float2fix15(0.2);
@@ -110,24 +112,40 @@ void drawArena() {
 // Detect wallstrikes, update velocity and position
 void wallsAndEdges(fix15* x, fix15* y, fix15* vx, fix15* vy)
 {
-  // Reverse direction if we've hit a wall
-  if (hitTop(*y)) {
-    *vy = (*vy + turnfactor) ;
-  }
-  if (hitBottom(*y)) {
-    *vy = (*vy - turnfactor) ;
-  } 
-  if (hitRight(*x)) {
-    *vx = (*vx - turnfactor) ;
-  }
-  if (hitLeft(*x)) {
-    *vx = (*vx + turnfactor) ;
-  } 
+  if(wallMode == int2fix15(0)){
+    // Reverse direction if we've hit a wall
+    if (hitTop(*y)) {
+      *vy = (*vy + turnfactor) ;
+    }
+    if (hitBottom(*y)) {
+      *vy = (*vy - turnfactor) ;
+    } 
+    if (hitRight(*x)) {
+      *vx = (*vx - turnfactor) ;
+    }
+    if (hitLeft(*x)) {
+      *vx = (*vx + turnfactor) ;
+    } 
 
 
-  // Update position using velocity
-  *x = *x + *vx ;
-  *y = *y + *vy ;
+    // Update position using velocity
+    *x = *x + *vx ;
+    *y = *y + *vy ;
+  }else{
+    // Reverse direction if we've hit a wall
+    if (hitTop(*y)) {
+      *y = int2fix15(480) ;
+    }
+    if (hitBottom(*y)) {
+      *y = int2fix15(0) ;
+    }
+    if (hitRight(*x)) {
+      *x = int2fix15(0) ;
+    }
+    if (hitLeft(*x)) {
+      *x = int2fix15(640) ;
+    }
+  }
 }
 
 // ==================================================
