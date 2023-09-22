@@ -71,7 +71,11 @@ char color = WHITE ;
 
 //factors
 fix15 turnfactor = float2fix15(0.2);
-
+fix15 visualrange = int2fix15(40);
+fix15 protectedrange = int2fix15(8);
+fix15 centeringfactor = float2fix15(0.0005);
+fix15 avoidfactor = float2fix15(0.05);
+fix15 matcingfactor = float2fix15(0.05);
 
 // Boid on core 0
 fix15 boid0_x ;
