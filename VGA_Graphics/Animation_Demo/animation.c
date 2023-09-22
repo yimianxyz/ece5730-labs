@@ -59,8 +59,19 @@ typedef signed int fix15 ;
 // uS per frame
 #define FRAME_RATE 33000
 
+#define MAX_SPEED 6
+#define MIN_SPEED 3
+
+#define NUM_OF_BOIDS 2
+
+
 // the color of the boid
 char color = WHITE ;
+
+
+//factors
+fix15 turnfactor = float2fix15(0.2);
+
 
 // Boid on core 0
 fix15 boid0_x ;
@@ -77,14 +88,15 @@ fix15 boid1_vy ;
 // Create a boid
 void spawnBoid(fix15* x, fix15* y, fix15* vx, fix15* vy, int direction)
 {
+
   // Start in center of screen
-  *x = int2fix15(320) ;
-  *y = int2fix15(240) ;
+  *x = int2fix15(rand() % (540 - 100) + 100); //int2fix15(320) ;
+  *y = int2fix15(rand() % (380 - 100) + 100); //int2fix15(240) ;
   // Choose left or right
-  if (direction) *vx = int2fix15(3) ;
-  else *vx = int2fix15(-3) ;
+
+  *vx = int2fix15((rand() % (6 - 3) + 3) - 9*(rand()%2)) ;
   // Moving down
-  *vy = int2fix15(1) ;
+  *vy = int2fix15((rand() % (6 - 3) + 3) - 9*(rand()%2)) ; //int2fix15(1) ;
 }
 
 // Draw the boundaries
@@ -100,21 +112,18 @@ void wallsAndEdges(fix15* x, fix15* y, fix15* vx, fix15* vy)
 {
   // Reverse direction if we've hit a wall
   if (hitTop(*y)) {
-    *vy = (-*vy) ;
-    *y  = (*y + int2fix15(5)) ;
+    *vy = (*vy + turnfactor) ;
   }
   if (hitBottom(*y)) {
-    *vy = (-*vy) ;
-    *y  = (*y - int2fix15(5)) ;
+    *vy = (*vy - turnfactor) ;
   } 
   if (hitRight(*x)) {
-    *vx = (-*vx) ;
-    *x  = (*x - int2fix15(5)) ;
+    *vx = (*vx - turnfactor) ;
   }
   if (hitLeft(*x)) {
-    *vx = (-*vx) ;
-    *x  = (*x + int2fix15(5)) ;
+    *vx = (*vx + turnfactor) ;
   } 
+
 
   // Update position using velocity
   *x = *x + *vx ;
@@ -161,9 +170,9 @@ static PT_THREAD (protothread_anim(struct pt *pt))
     // Variables for maintaining frame rate
     static int begin_time ;
     static int spare_time ;
-
+    
     // Spawn a boid
-    spawnBoid(&boid0_x, &boid0_y, &boid0_vx, &boid0_vy, 0);
+    spawnBoid(&boid0_x, &boid0_y, &boid0_vx, &boid0_vy, rand()%2);
 
     while(1) {
       // Measure time at start of thread
@@ -178,6 +187,11 @@ static PT_THREAD (protothread_anim(struct pt *pt))
       drawArena() ;
       // delay in accordance with frame rate
       spare_time = FRAME_RATE - (time_us_32() - begin_time) ;
+
+      //print
+      printf("Number of boids: %d\n" ,NUM_OF_BOIDS) ; 
+      printf("Elapsed time: %d\n" ,time_us_32()/1000000) ; 
+      printf("Frame rate: %d\n" ,FRAME_RATE) ;
       // yield for necessary amount of time
       PT_YIELD_usec(spare_time) ;
      // NEVER exit while
@@ -197,11 +211,21 @@ static PT_THREAD (protothread_anim1(struct pt *pt))
     static int spare_time ;
 
     // Spawn a boid
-    spawnBoid(&boid1_x, &boid1_y, &boid1_vx, &boid1_vy, 1);
+    spawnBoid(&boid1_x, &boid1_y, &boid1_vx, &boid1_vy, rand()%2);
+
+    // // Write some text
+    // setTextColor(WHITE) ;
+    // setCursor(65, 0) ;
+    // setTextSize(1) ;
+    // writeString("Number of boids: %d", NUM_OF_BOIDS) ;
+    // setCursor(65, 10) ;
+    // writeString("Frame rate: %d" ,FRAME_RATE) ;
+    // setCursor(65, 20) ;
+
 
     while(1) {
       // Measure time at start of thread
-      begin_time = time_us_32() ;      
+      begin_time = time_us_32() ;  
       // erase boid
       drawRect(fix2int15(boid1_x), fix2int15(boid1_y), 2, 2, BLACK);
       // update boid's position and velocity
