@@ -241,18 +241,18 @@ void update_boid(int i){
   *y += *vy;
 
   // pos double check to make sure we're not out of bounds
-  if(*x > int2fix15(SCREEN_WIDTH)){
-    *x = int2fix15(SCREEN_WIDTH);
-  }
-  else if(*x < int2fix15(0)){
-    *x = int2fix15(0);
-  }
-  if(*y > int2fix15(SCREEN_HEIGHT)){
-    *y = int2fix15(SCREEN_HEIGHT);
-  }
-  else if(*y < int2fix15(0)){
-    *y = int2fix15(0);
-  }
+  // if(*x > int2fix15(SCREEN_WIDTH)){
+  //   *x = int2fix15(SCREEN_WIDTH);
+  // }
+  // else if(*x < int2fix15(0)){
+  //   *x = int2fix15(0);
+  // }
+  // if(*y > int2fix15(SCREEN_HEIGHT)){
+  //   *y = int2fix15(SCREEN_HEIGHT);
+  // }
+  // else if(*y < int2fix15(0)){
+  //   *y = int2fix15(0);
+  // }
 }
 
 
