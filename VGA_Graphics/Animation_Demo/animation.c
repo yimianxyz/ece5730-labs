@@ -50,19 +50,29 @@ typedef signed int fix15 ;
 #define char2fix15(a) (fix15)(((fix15)(a)) << 15)
 #define divfix(a,b) (fix15)(div_s64s64( (((signed long long)(a)) << 15), ((signed long long)(b))))
 
-// Wall detection
-#define hitBottom(b) (b>int2fix15(380))
-#define hitTop(b) (b<int2fix15(100))
-#define hitLeft(a) (a<int2fix15(100))
-#define hitRight(a) (a>int2fix15(540))
-
 // uS per frame
 #define FRAME_RATE 33000
 
 #define MAX_SPEED 6
 #define MIN_SPEED 3
 
+#define SCREEN_WIDTH 640
+#define SCREEN_HEIGHT 480
+
 #define NUM_OF_BOIDS 2
+
+
+// Wall detection
+#define hitBottom(b) (b>int2fix15(380))
+#define hitTop(b) (b<int2fix15(100))
+#define hitLeft(a) (a<int2fix15(100))
+#define hitRight(a) (a>int2fix15(540))
+
+// Screen edges detection
+#define hitBottomEdge(b) (b>int2fix15(SCREEN_HEIGHT))
+#define hitTopEdge(b) (b<int2fix15(0))
+#define hitLeftEdge(a) (a<int2fix15(0))
+#define hitRightEdge(a) (a>int2fix15(SCREEN_WIDTH))
 
 
 // the color of the boid
@@ -79,31 +89,30 @@ fix15 centeringfactor = float2fix15(0.0005);
 fix15 avoidfactor = float2fix15(0.05);
 fix15 matcingfactor = float2fix15(0.05);
 
-// Boid on core 0
-fix15 boid0_x ;
-fix15 boid0_y ;
-fix15 boid0_vx ;
-fix15 boid0_vy ;
+// Boid struct
+typedef struct boid{
+  fix15 x;
+  fix15 y;
+  fix15 vx;
+  fix15 vy;
+}boid;
 
-// Boid on core 1
-fix15 boid1_x ;
-fix15 boid1_y ;
-fix15 boid1_vx ;
-fix15 boid1_vy ;
+// Array of boids
+boid boids[NUM_OF_BOIDS];
 
-// Create a boid
-void spawnBoid(fix15* x, fix15* y, fix15* vx, fix15* vy, int direction)
-{
-
-  // Start in center of screen
-  *x = int2fix15(rand() % (540 - 100) + 100); //int2fix15(320) ;
-  *y = int2fix15(rand() % (380 - 100) + 100); //int2fix15(240) ;
-  // Choose left or right
-
-  *vx = int2fix15((rand() % (6 - 3) + 3) - 9*(rand()%2)) ;
-  // Moving down
-  *vy = int2fix15((rand() % (6 - 3) + 3) - 9*(rand()%2)) ; //int2fix15(1) ;
+// Init boids
+void initBoids(){
+  for(int i = 0; i < NUM_OF_BOIDS; i++){
+    boids[i].x = int2fix15(rand() % (540 - 100) + 100);
+    boids[i].y = int2fix15(rand() % (380 - 100) + 100);
+    boids[i].vx = int2fix15((rand() % (MAX_SPEED - MIN_SPEED) + MIN_SPEED) - (MAX_SPEED + MIN_SPEED)*(rand()%2));
+    boids[i].vy = int2fix15((rand() % (MAX_SPEED - MIN_SPEED) + MIN_SPEED) - (MAX_SPEED + MIN_SPEED)*(rand()%2));
+  }
 }
+
+
+
+
 
 // Draw the boundaries
 void drawArena() {
@@ -130,27 +139,108 @@ void wallsAndEdges(fix15* x, fix15* y, fix15* vx, fix15* vy)
     if (hitLeft(*x)) {
       *vx = (*vx + turnfactor) ;
     } 
-
-
-    // Update position using velocity
-    *x = *x + *vx ;
-    *y = *y + *vy ;
   }else{
-    // Reverse direction if we've hit a wall
-    if (hitTop(*y)) {
-      *y = int2fix15(480) ;
+    // Move to opposite side of screen if we've reach the screen edge
+    if (hitTopEdge(*y)) {
+      *y = int2fix15(SCREEN_HEIGHT) ;
     }
-    if (hitBottom(*y)) {
+    if (hitBottomEdge(*y)) {
       *y = int2fix15(0) ;
     }
-    if (hitRight(*x)) {
+    if (hitRightEdge(*x)) {
       *x = int2fix15(0) ;
     }
-    if (hitLeft(*x)) {
-      *x = int2fix15(640) ;
+    if (hitLeftEdge(*x)) {
+      *x = int2fix15(SCREEN_WIDTH) ;
     }
   }
 }
+
+
+// Update boid
+void update_boid(int i){
+
+  fix15 *x = &boids[i].x;
+  fix15 *y = &boids[i].y;
+  fix15 *vx = &boids[i].vx;
+  fix15 *vy = &boids[i].vy;
+
+  fix15 xpos_avg = int2fix15(0);
+  fix15 ypos_avg = int2fix15(0);
+  fix15 xvel_avg = int2fix15(0);
+  fix15 yvel_avg = int2fix15(0);
+  fix15 close_dx = int2fix15(0);
+  fix15 close_dy = int2fix15(0);
+  fix15 neighboring_boids = int2fix15(0);
+
+  for(int j = 0; j < NUM_OF_BOIDS; j++){
+    if(i != j){
+      fix15 dx = boids[j].x - *x;
+      fix15 dy = boids[j].y - *y;
+      fix15 dist = sqrt(multfix15(dx, dx) + multfix15(dy, dy));
+      
+      if(dist < protectedrange){
+        close_dx -= dx;
+        close_dy -= dy;
+      }
+      else if (dist < visualrange){
+        xpos_avg += boids[j].x;
+        ypos_avg += boids[j].y;
+        xvel_avg += boids[j].vx;
+        yvel_avg += boids[j].vy;
+        neighboring_boids++;
+      }
+    }
+  }
+
+  if (neighboring_boids > 0){
+    xpos_avg = divfix(xpos_avg, neighboring_boids);
+    ypos_avg = divfix(ypos_avg, neighboring_boids);
+    xvel_avg = divfix(xvel_avg, neighboring_boids);
+    yvel_avg = divfix(yvel_avg, neighboring_boids);
+
+    fix15 dx = xpos_avg - *x;
+    fix15 dy = ypos_avg - *y;
+    fix15 dvx = xvel_avg - *vx;
+    fix15 dvy = yvel_avg - *vy;
+
+    *vx += multfix15(dx, centeringfactor) + multfix15(dvx, matcingfactor));
+    *vy += multfix15(dy, centeringfactor) + multfix15(dvy, matcingfactor));
+  }
+
+  *vx += multfix15(close_dx, avoidfactor);
+  *vy += multfix15(close_dy, avoidfactor);
+
+  wallsAndEdges(x, y, vx, vy);
+
+  fix15 speed = sqrt(multfix15(*vx, *vx) + multfix15(*vy, *vy));
+  if(speed > int2fix15(MAX_SPEED)){
+    *vx = divfix(multfix15(*vx, int2fix15(MAX_SPEED)), speed);
+    *vy = divfix(multfix15(*vy, int2fix15(MAX_SPEED)), speed);
+  }
+  else if(speed < int2fix15(MIN_SPEED)){
+    *vx = divfix(multfix15(*vx, int2fix15(MIN_SPEED)), speed);
+    *vy = divfix(multfix15(*vy, int2fix15(MIN_SPEED)), speed);
+  }
+
+  *x += *vx;
+  *y += *vy;
+
+  // pos double check to make sure we're not out of bounds
+  // if(*x > int2fix15(SCREEN_WIDTH)){
+  //   *x = int2fix15(SCREEN_WIDTH);
+  // }
+  // else if(*x < int2fix15(0)){
+  //   *x = int2fix15(0);
+  // }
+  // if(*y > int2fix15(SCREEN_HEIGHT)){
+  //   *y = int2fix15(SCREEN_HEIGHT);
+  // }
+  // else if(*y < int2fix15(0)){
+  //   *y = int2fix15(0);
+  // }
+}
+
 
 // ==================================================
 // === users serial input thread
@@ -159,7 +249,7 @@ static PT_THREAD (protothread_serial(struct pt *pt))
 {
     PT_BEGIN(pt);
     // stores user input
-    static int user_input ;
+    static float user_input ;
     // wait for 0.1 sec
     PT_YIELD_usec(1000000) ;
     // announce the threader version
@@ -168,17 +258,15 @@ static PT_THREAD (protothread_serial(struct pt *pt))
     serial_write ;
       while(1) {
         // print prompt
-        sprintf(pt_serial_out_buffer, "input a number in the range 1-7: ");
+        sprintf(pt_serial_out_buffer, "input a new avoid factor: ");
         // non-blocking write
         serial_write ;
         // spawn a thread to do the non-blocking serial read
         serial_read ;
-        // convert input string to number
-        sscanf(pt_serial_in_buffer,"%d", &user_input) ;
-        // update boid color
-        if ((user_input > 0) && (user_input < 8)) {
-          color = (char)user_input ;
-        }
+        // convert input string to floating point number
+        sscanf( pt_serial_in_buffer, "%f", &user_input);
+        // update the avoid factor
+        avoidfactor = float2fix15(user_input);
       } // END WHILE(1)
   PT_END(pt);
 } // timer thread
@@ -193,18 +281,20 @@ static PT_THREAD (protothread_anim(struct pt *pt))
     static int begin_time ;
     static int spare_time ;
     
-    // Spawn a boid
-    spawnBoid(&boid0_x, &boid0_y, &boid0_vx, &boid0_vy, rand()%2);
+    // Init boids
+    initBoids();
 
     while(1) {
       // Measure time at start of thread
-      begin_time = time_us_32() ;      
-      // erase boid
-      drawRect(fix2int15(boid0_x), fix2int15(boid0_y), 2, 2, BLACK);
-      // update boid's position and velocity
-      wallsAndEdges(&boid0_x, &boid0_y, &boid0_vx, &boid0_vy) ;
-      // draw the boid at its new position
-      drawRect(fix2int15(boid0_x), fix2int15(boid0_y), 2, 2, color); 
+      begin_time = time_us_32() ;    
+      for (int i = 0; i < NUM_OF_BOIDS; i++){
+        // erase boid
+        drawRect(fix2int15(boids[i].x), fix2int15(boids[i].y), 2, 2, BLACK);
+        // update boid's position and velocity
+        update_boid(i);
+        // draw the boid at its new position
+        drawRect(fix2int15(boids[i].x), fix2int15(boids[i].y), 2, 2, color); 
+      }
       // draw the boundaries
       drawArena() ;
       // delay in accordance with frame rate
@@ -229,11 +319,11 @@ static PT_THREAD (protothread_anim1(struct pt *pt))
     PT_BEGIN(pt);
 
     // Variables for maintaining frame rate
-    static int begin_time ;
-    static int spare_time ;
+    // static int begin_time ;
+    // static int spare_time ;
 
-    // Spawn a boid
-    spawnBoid(&boid1_x, &boid1_y, &boid1_vx, &boid1_vy, rand()%2);
+    // // Spawn a boid
+    // spawnBoid(&boid1_x, &boid1_y, &boid1_vx, &boid1_vy, rand()%2);
 
     // // Write some text
     // setTextColor(WHITE) ;
@@ -247,17 +337,17 @@ static PT_THREAD (protothread_anim1(struct pt *pt))
 
     while(1) {
       // Measure time at start of thread
-      begin_time = time_us_32() ;  
-      // erase boid
-      drawRect(fix2int15(boid1_x), fix2int15(boid1_y), 2, 2, BLACK);
-      // update boid's position and velocity
-      wallsAndEdges(&boid1_x, &boid1_y, &boid1_vx, &boid1_vy) ;
-      // draw the boid at its new position
-      drawRect(fix2int15(boid1_x), fix2int15(boid1_y), 2, 2, color); 
-      // delay in accordance with frame rate
-      spare_time = FRAME_RATE - (time_us_32() - begin_time) ;
-      // yield for necessary amount of time
-      PT_YIELD_usec(spare_time) ;
+      // begin_time = time_us_32() ;  
+      // // erase boid
+      // drawRect(fix2int15(boid1_x), fix2int15(boid1_y), 2, 2, BLACK);
+      // // update boid's position and velocity
+      // wallsAndEdges(&boid1_x, &boid1_y, &boid1_vx, &boid1_vy) ;
+      // // draw the boid at its new position
+      // drawRect(fix2int15(boid1_x), fix2int15(boid1_y), 2, 2, color); 
+      // // delay in accordance with frame rate
+      // spare_time = FRAME_RATE - (time_us_32() - begin_time) ;
+      // // yield for necessary amount of time
+      // PT_YIELD_usec(spare_time) ;
      // NEVER exit while
     } // END WHILE(1)
   PT_END(pt);
