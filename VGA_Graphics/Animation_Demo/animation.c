@@ -49,6 +49,7 @@ typedef signed int fix15 ;
 #define fix2int15(a) ((int)(a >> 15))
 #define char2fix15(a) (fix15)(((fix15)(a)) << 15)
 #define divfix(a,b) (fix15)(div_s64s64( (((signed long long)(a)) << 15), ((signed long long)(b))))
+#define sqrtfix(a) (float2fix(sqrt(fix2float(a)))
 
 // uS per frame
 #define FRAME_RATE 33000
@@ -227,15 +228,15 @@ void update_boid(int i){
 
   wallsAndEdges(x, y, vx, vy);
 
-  // fix15 speed = sqrt(multfix15(*vx, *vx) + multfix15(*vy, *vy));
-  // if(speed > int2fix15(MAX_SPEED)){
-  //   *vx = divfix(multfix15(*vx, int2fix15(MAX_SPEED)), speed);
-  //   *vy = divfix(multfix15(*vy, int2fix15(MAX_SPEED)), speed);
-  // }
-  // else if(speed < int2fix15(MIN_SPEED)){
-  //   *vx = divfix(multfix15(*vx, int2fix15(MIN_SPEED)), speed);
-  //   *vy = divfix(multfix15(*vy, int2fix15(MIN_SPEED)), speed);
-  // }
+  fix15 speed = sqrtfix(multfix15(*vx, *vx) + multfix15(*vy, *vy));
+  if(speed > int2fix15(MAX_SPEED)){
+    *vx = divfix(multfix15(*vx, int2fix15(MAX_SPEED)), speed);
+    *vy = divfix(multfix15(*vy, int2fix15(MAX_SPEED)), speed);
+  }
+  else if(speed < int2fix15(MIN_SPEED)){
+    *vx = divfix(multfix15(*vx, int2fix15(MIN_SPEED)), speed);
+    *vy = divfix(multfix15(*vy, int2fix15(MIN_SPEED)), speed);
+  }
 
   *x += *vx;
   *y += *vy;
