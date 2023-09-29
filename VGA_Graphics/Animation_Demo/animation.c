@@ -311,13 +311,34 @@ static PT_THREAD (protothread_anim(struct pt *pt))
       // delay in accordance with frame rate
       spare_time = FRAME_RATE - (time_us_32() - begin_time) ;
 
+
+      setTextColor(WHITE) ;
+      sprintf(str, "%d",NUM_OF_BOIDS);
+      setCursor(65, 0) ;
+      setTextSize(1) ;
+      writeString("Number of boids:") ;
+      writeString(str) ;
+
+      sprintf(str, "%d",FRAME_RATE);
+      setCursor(65, 10) ;
+      writeString("Frame rate:") ;
+      writeString(str) ;
+
+      setCursor(65, 20) ;
+      writeString("Elapsed time:") ;
+      setTextColor(BLACK) ;
+      sprintf(str, "%d",time_us_32()/1000000-1);
+      writeString(str) ;
+
+      setTextColor(WHITE) ;
+      sprintf(str, "%d",time_us_32()/1000000);
+      setCursor(65, 20) ;
+      writeString("Elapsed time:") ;
+      writeString(str) ;
+
       
+
       
-      // sprintf(str, "%d",NUM_OF_BOIDS);
-      // setCursor(250, 20) ;
-      // setTextSize(2) ;
-      // writeString("Number of boids:") ;
-      // writeString(str) ;
       //print
       // printf("Number of boids: %d\n" ,NUM_OF_BOIDS) ; 
       // printf("Elapsed time: %d\n" ,time_us_32()/1000000) ; 
