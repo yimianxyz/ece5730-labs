@@ -78,6 +78,9 @@ typedef signed int fix15 ;
 // the color of the boid
 char color = WHITE ;
 
+int uiSelected = 0;
+int uiRefreshDone = 0;
+
 // modes
 fix15 wallMode = int2fix15(0);
 
@@ -268,16 +271,29 @@ static PT_THREAD (protothread_serial(struct pt *pt))
     // non-blocking write
     serial_write ;
       while(1) {
+        static float f_user_input ;
         // print prompt
-        sprintf(pt_serial_out_buffer, "input a new avoid factor: ");
+        sprintf(pt_serial_out_buffer, "\n\ninput a new value = ");
         // non-blocking write
         serial_write ;
         // spawn a thread to do the non-blocking serial read
         serial_read ;
+        f_user_input = user_input ;
         // convert input string to floating point number
         sscanf( pt_serial_in_buffer, "%f", &user_input);
-        // update the avoid factor
-        avoidfactor = float2fix15(user_input);
+        
+        if(f_user_input != user_input){
+          if(uiSelected == 0){
+            wallMode = float2fix15(user_input);
+          }
+          else if(uiSelected == 1){
+            avoidfactor = float2fix15(user_input);
+          }
+        } else {
+          uiSelected = (uiSelected + 1) % 2;
+        }
+
+        uiRefreshDone = 0;
       } // END WHILE(1)
   PT_END(pt);
 } // timer thread
@@ -336,11 +352,20 @@ static PT_THREAD (protothread_anim(struct pt *pt))
       writeString("Elapsed time:") ;
       writeString(str) ;
 
-      
-      printf("\x1b[2J\x1b[1;1H");
-      printf("Wall Mode: %d\n", fix2int15(wallMode));
-      printf("Avoid Factor: %f\n", fix2float15(avoidfactor));
 
+      if(!uiRefreshDone){
+        printf("\x1b[2J\x1b[1;1H");
+        if(uiSelected == 0){
+          printf("-->");
+        }
+        printf("Wall Mode: %d\n", fix2int15(wallMode));
+        if(uiSelected == 1){
+          printf("-->");
+        }
+        printf("Avoid Factor: %f\n", fix2float15(avoidfactor));
+
+        uiRefreshDone = 1;
+      }
       
       //print
       // printf("Number of boids: %d\n" ,NUM_OF_BOIDS) ; 
