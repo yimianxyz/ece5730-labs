@@ -59,7 +59,7 @@ typedef signed int fix15 ;
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 480
 
-#define NUM_OF_BOIDS 10
+#define NUM_OF_BOIDS 50
 
 
 // Wall detection
@@ -99,6 +99,8 @@ typedef struct boid{
 
 // Array of boids
 boid boids[NUM_OF_BOIDS];
+
+char str[40];
 
 // Init boids
 void initBoids(){
@@ -183,7 +185,7 @@ void update_boid(int i){
       // if(dy < int2fix15(-240)) dy += int2fix15(480);
       
       
-      if(dx < visualrange && dy < visualrange && dx > -visualrange && vy > -visualrange){
+      if(dx < visualrange && dy < visualrange && dx > -visualrange && dy > -visualrange){
         fix15 square_dist = (multfix15(dx, dx) + multfix15(dy, dy));
 
         if(square_dist < multfix15(protectedrange,protectedrange)){
@@ -201,7 +203,7 @@ void update_boid(int i){
       
     }
   }
-
+  // printf("%d",neighboring_boids);
   if (neighboring_boids > 0){
     xpos_avg = divfix(xpos_avg, neighboring_boids);
     ypos_avg = divfix(ypos_avg, neighboring_boids);
@@ -216,7 +218,7 @@ void update_boid(int i){
     *vx += multfix15(xpos_avg - *x, centeringfactor) + multfix15(xvel_avg - *vx, matcingfactor);
     *vy += multfix15(ypos_avg - *y, centeringfactor) + multfix15(yvel_avg - *vy, matcingfactor);
   }
-  printf("%d\n", fix2int15(close_dx));
+
   *vx += multfix15(close_dx, avoidfactor);
   *vy += multfix15(close_dy, avoidfactor);
 
@@ -309,10 +311,17 @@ static PT_THREAD (protothread_anim(struct pt *pt))
       // delay in accordance with frame rate
       spare_time = FRAME_RATE - (time_us_32() - begin_time) ;
 
+      
+      
+      // sprintf(str, "%d",NUM_OF_BOIDS);
+      // setCursor(250, 20) ;
+      // setTextSize(2) ;
+      // writeString("Number of boids:") ;
+      // writeString(str) ;
       //print
-      printf("Number of boids: %d\n" ,NUM_OF_BOIDS) ; 
-      printf("Elapsed time: %d\n" ,time_us_32()/1000000) ; 
-      printf("Frame rate: %d\n" ,FRAME_RATE) ;
+      // printf("Number of boids: %d\n" ,NUM_OF_BOIDS) ; 
+      // printf("Elapsed time: %d\n" ,time_us_32()/1000000) ; 
+      // printf("Frame rate: %d\n" ,FRAME_RATE) ;
       // yield for necessary amount of time
       PT_YIELD_usec(spare_time) ;
      // NEVER exit while
