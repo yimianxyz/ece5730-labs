@@ -49,9 +49,9 @@ typedef signed int fix15 ;
 #define fix2int15(a) ((int)(a >> 15))
 #define char2fix15(a) (fix15)(((fix15)(a)) << 15)
 #define divfix(a,b) (fix15)(div_s64s64( (((signed long long)(a)) << 15), ((signed long long)(b))))
-#define float2fix(a) ((fix15))(a * 32768.0)
+#define float2fix(a) ((fix15)((a) * 32768.0))
 #define fix2float(a) ((float)(a) / 32768.0)
-#define sqrtfix(a) (float2fix(sqrt(fix2float(a)))
+#define sqrtfix(a) (float2fix(sqrt(fix2float(a))))
 
 // uS per frame
 #define FRAME_RATE 33000
@@ -123,11 +123,11 @@ void initBoids(){
 
 
 // Draw the boundaries
-void drawArena() {
-  drawVLine(100, 100, 280, WHITE) ;
-  drawVLine(540, 100, 280, WHITE) ;
-  drawHLine(100, 100, 440, WHITE) ;
-  drawHLine(100, 380, 440, WHITE) ;
+void drawArena(char color) {
+  drawVLine(100, 100, 280, color) ;
+  drawVLine(540, 100, 280, color) ;
+  drawHLine(100, 100, 440, color) ;
+  drawHLine(100, 380, 440, color) ;
 }
 
 // Detect wallstrikes, update velocity and position
@@ -326,7 +326,7 @@ static PT_THREAD (protothread_anim(struct pt *pt))
         drawRect(fix2int15(boids[i].x), fix2int15(boids[i].y), 2, 2, color); 
       }
       // draw the boundaries
-      drawArena() ;
+      drawArena(wallMode?BLACK:WHITE) ;
       // delay in accordance with frame rate
       spare_time = FRAME_RATE - (time_us_32() - begin_time) ;
 
