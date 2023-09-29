@@ -59,7 +59,7 @@ typedef signed int fix15 ;
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 480
 
-#define NUM_OF_BOIDS 2
+#define NUM_OF_BOIDS 10
 
 
 // Wall detection
@@ -83,8 +83,8 @@ fix15 wallMode = int2fix15(0);
 
 //factors
 fix15 turnfactor = float2fix15(0.2);
-fix15 visualrange = int2fix15(40);
-fix15 protectedrange = int2fix15(8);
+fix15 visualrange = float2fix15(40);
+fix15 protectedrange = float2fix15(8);
 fix15 centeringfactor = float2fix15(0.0005);
 fix15 avoidfactor = float2fix15(0.05);
 fix15 matcingfactor = float2fix15(0.05);
@@ -175,21 +175,30 @@ void update_boid(int i){
 
   for(int j = 0; j < NUM_OF_BOIDS; j++){
     if(i != j){
-      fix15 dx = boids[j].x - *x;
-      fix15 dy = boids[j].y - *y;
-      fix15 dist = sqrt(multfix15(dx, dx) + multfix15(dy, dy));
+      fix15 dx = *x - boids[j].x;
+      // if(dx > int2fix15(320)) dx -= int2fix15(640);
+      // if(dx < int2fix15(-320)) dx += int2fix15(640);
+      fix15 dy = *y - boids[j].y;
+      // if(dy > int2fix15(240)) dy -= int2fix15(480);
+      // if(dy < int2fix15(-240)) dy += int2fix15(480);
       
-      if(dist < protectedrange){
-        close_dx -= dx;
-        close_dy -= dy;
+      
+      if(dx < visualrange && dy < visualrange && dx > -visualrange && vy > -visualrange){
+        fix15 square_dist = (multfix15(dx, dx) + multfix15(dy, dy));
+
+        if(square_dist < multfix15(protectedrange,protectedrange)){
+          close_dx += dx;
+          close_dy += dy;
+        }
+        else if (square_dist < multfix15(visualrange,visualrange)){
+          xpos_avg += boids[j].x;
+          ypos_avg += boids[j].y;
+          xvel_avg += boids[j].vx;
+          yvel_avg += boids[j].vy;
+          neighboring_boids += int2fix15(1);
+        }
       }
-      else if (dist < visualrange){
-        xpos_avg += boids[j].x;
-        ypos_avg += boids[j].y;
-        xvel_avg += boids[j].vx;
-        yvel_avg += boids[j].vy;
-        neighboring_boids++;
-      }
+      
     }
   }
 
@@ -199,46 +208,46 @@ void update_boid(int i){
     xvel_avg = divfix(xvel_avg, neighboring_boids);
     yvel_avg = divfix(yvel_avg, neighboring_boids);
 
-    fix15 dx = xpos_avg - *x;
-    fix15 dy = ypos_avg - *y;
-    fix15 dvx = xvel_avg - *vx;
-    fix15 dvy = yvel_avg - *vy;
+    // fix15 dx = xpos_avg - *x;
+    // fix15 dy = ypos_avg - *y;
+    // fix15 dvx = xvel_avg - *vx;
+    // fix15 dvy = yvel_avg - *vy;
 
-    *vx += multfix15(dx, centeringfactor) + multfix15(dvx, matcingfactor));
-    *vy += multfix15(dy, centeringfactor) + multfix15(dvy, matcingfactor));
+    *vx += multfix15(xpos_avg - *x, centeringfactor) + multfix15(xvel_avg - *vx, matcingfactor);
+    *vy += multfix15(ypos_avg - *y, centeringfactor) + multfix15(yvel_avg - *vy, matcingfactor);
   }
-
+  printf("%d\n", fix2int15(close_dx));
   *vx += multfix15(close_dx, avoidfactor);
   *vy += multfix15(close_dy, avoidfactor);
 
   wallsAndEdges(x, y, vx, vy);
 
-  fix15 speed = sqrt(multfix15(*vx, *vx) + multfix15(*vy, *vy));
-  if(speed > int2fix15(MAX_SPEED)){
-    *vx = divfix(multfix15(*vx, int2fix15(MAX_SPEED)), speed);
-    *vy = divfix(multfix15(*vy, int2fix15(MAX_SPEED)), speed);
-  }
-  else if(speed < int2fix15(MIN_SPEED)){
-    *vx = divfix(multfix15(*vx, int2fix15(MIN_SPEED)), speed);
-    *vy = divfix(multfix15(*vy, int2fix15(MIN_SPEED)), speed);
-  }
+  // fix15 speed = sqrt(multfix15(*vx, *vx) + multfix15(*vy, *vy));
+  // if(speed > int2fix15(MAX_SPEED)){
+  //   *vx = divfix(multfix15(*vx, int2fix15(MAX_SPEED)), speed);
+  //   *vy = divfix(multfix15(*vy, int2fix15(MAX_SPEED)), speed);
+  // }
+  // else if(speed < int2fix15(MIN_SPEED)){
+  //   *vx = divfix(multfix15(*vx, int2fix15(MIN_SPEED)), speed);
+  //   *vy = divfix(multfix15(*vy, int2fix15(MIN_SPEED)), speed);
+  // }
 
   *x += *vx;
   *y += *vy;
 
   // pos double check to make sure we're not out of bounds
-  // if(*x > int2fix15(SCREEN_WIDTH)){
-  //   *x = int2fix15(SCREEN_WIDTH);
-  // }
-  // else if(*x < int2fix15(0)){
-  //   *x = int2fix15(0);
-  // }
-  // if(*y > int2fix15(SCREEN_HEIGHT)){
-  //   *y = int2fix15(SCREEN_HEIGHT);
-  // }
-  // else if(*y < int2fix15(0)){
-  //   *y = int2fix15(0);
-  // }
+  if(*x > int2fix15(SCREEN_WIDTH)){
+    *x = int2fix15(SCREEN_WIDTH);
+  }
+  else if(*x < int2fix15(0)){
+    *x = int2fix15(0);
+  }
+  if(*y > int2fix15(SCREEN_HEIGHT)){
+    *y = int2fix15(SCREEN_HEIGHT);
+  }
+  else if(*y < int2fix15(0)){
+    *y = int2fix15(0);
+  }
 }
 
 
