@@ -337,6 +337,9 @@ static PT_THREAD (protothread_anim(struct pt *pt))
       writeString(str) ;
 
       
+      printf("\x1b[2J\x1b[1;1H");
+      printf("Wall Mode: %d\n", fix2int15(wallMode));
+      printf("Avoid Factor: %f\n", fix2float15(avoidfactor));
 
       
       //print
