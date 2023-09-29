@@ -273,7 +273,7 @@ static PT_THREAD (protothread_serial(struct pt *pt))
       while(1) {
         static float f_user_input ;
         // print prompt
-        sprintf(pt_serial_out_buffer, "\n\ninput a new value = ");
+        // sprintf(pt_serial_out_buffer, "\n\ninput a new value = ");
         // non-blocking write
         serial_write ;
         // spawn a thread to do the non-blocking serial read
@@ -356,14 +356,17 @@ static PT_THREAD (protothread_anim(struct pt *pt))
       if(!uiRefreshDone){
         printf("\x1b[2J\x1b[1;1H");
         if(uiSelected == 0){
-          printf("-->");
+          printf("->");
         }
         printf("Wall Mode: %d\n", fix2int15(wallMode));
         if(uiSelected == 1){
-          printf("-->");
+          printf("->");
         }
         printf("Avoid Factor: %f\n", fix2float15(avoidfactor));
 
+
+
+        printf("\n\nPlease input a new value = ");
         uiRefreshDone = 1;
       }
       
