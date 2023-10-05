@@ -63,6 +63,7 @@ typedef signed int fix15 ;
 #define SCREEN_HEIGHT 480
 
 #define NUM_OF_BOIDS 50
+#define NUM_OF_BOIDS_ON_CORE0 25
 
 
 // Wall detection
@@ -312,12 +313,12 @@ static PT_THREAD (protothread_anim(struct pt *pt))
     static int spare_time ;
     
     // Init boids
-    initBoids();
+    // initBoids();
 
     while(1) {
       // Measure time at start of thread
       begin_time = time_us_32() ;    
-      for (int i = 0; i < NUM_OF_BOIDS; i++){
+      for (int i = 0; i < NUM_OF_BOIDS_ON_CORE0; i++){
         // erase boid
         drawRect(fix2int15(boids[i].x), fix2int15(boids[i].y), 2, 2, BLACK);
         // update boid's position and velocity
@@ -392,35 +393,29 @@ static PT_THREAD (protothread_anim1(struct pt *pt))
     PT_BEGIN(pt);
 
     // Variables for maintaining frame rate
-    // static int begin_time ;
-    // static int spare_time ;
-
-    // // Spawn a boid
-    // spawnBoid(&boid1_x, &boid1_y, &boid1_vx, &boid1_vy, rand()%2);
-
-    // // Write some text
-    // setTextColor(WHITE) ;
-    // setCursor(65, 0) ;
-    // setTextSize(1) ;
-    // writeString("Number of boids: %d", NUM_OF_BOIDS) ;
-    // setCursor(65, 10) ;
-    // writeString("Frame rate: %d" ,FRAME_RATE) ;
-    // setCursor(65, 20) ;
+    static int begin_time ;
+    static int spare_time ;
 
 
     while(1) {
       // Measure time at start of thread
-      // begin_time = time_us_32() ;  
-      // // erase boid
-      // drawRect(fix2int15(boid1_x), fix2int15(boid1_y), 2, 2, BLACK);
-      // // update boid's position and velocity
-      // wallsAndEdges(&boid1_x, &boid1_y, &boid1_vx, &boid1_vy) ;
-      // // draw the boid at its new position
-      // drawRect(fix2int15(boid1_x), fix2int15(boid1_y), 2, 2, color); 
+      begin_time = time_us_32() ;  
+
+
+      for (int i = NUM_OF_BOIDS_ON_CORE0; i < NUM_OF_BOIDS; i++){
+        // erase boid
+        drawRect(fix2int15(boids[i].x), fix2int15(boids[i].y), 2, 2, BLACK);
+        // update boid's position and velocity
+        update_boid(i);
+        // draw the boid at its new position
+        drawRect(fix2int15(boids[i].x), fix2int15(boids[i].y), 2, 2, color); 
+      }
+
+
       // // delay in accordance with frame rate
-      // spare_time = FRAME_RATE - (time_us_32() - begin_time) ;
+      spare_time = FRAME_RATE - (time_us_32() - begin_time) ;
       // // yield for necessary amount of time
-      // PT_YIELD_usec(spare_time) ;
+      PT_YIELD_usec(spare_time) ;
      // NEVER exit while
     } // END WHILE(1)
   PT_END(pt);
@@ -447,6 +442,9 @@ int main(){
 
   // initialize VGA
   initVGA() ;
+
+  // init boids
+  initBoids();
 
   // start core 1 
   multicore_reset_core1();
