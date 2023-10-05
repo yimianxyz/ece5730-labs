@@ -87,6 +87,7 @@ int uiRefreshDone = 0;
 
 // modes
 fix15 wallMode = int2fix15(0);
+fix15 predatorMode = int2fix15(1);
 
 //factors
 fix15 turnfactor = float2fix15(0.2);
@@ -95,6 +96,8 @@ fix15 protectedrange = float2fix15(8);
 fix15 centeringfactor = float2fix15(0.0005);
 fix15 avoidfactor = float2fix15(0.05);
 fix15 matcingfactor = float2fix15(0.05);
+fix15 predatorturnfactor = float2fix15(0.5);
+fix15 predatorRange = float2fix15(100);
 
 // Boid struct
 typedef struct boid{
@@ -106,6 +109,7 @@ typedef struct boid{
 
 // Array of boids
 boid boids[NUM_OF_BOIDS];
+boid predator;
 
 char str[40];
 
@@ -117,6 +121,10 @@ void initBoids(){
     boids[i].vx = int2fix15((rand() % (MAX_SPEED - MIN_SPEED) + MIN_SPEED) - (MAX_SPEED + MIN_SPEED)*(rand()%2));
     boids[i].vy = int2fix15((rand() % (MAX_SPEED - MIN_SPEED) + MIN_SPEED) - (MAX_SPEED + MIN_SPEED)*(rand()%2));
   }
+  predator.x = int2fix15(rand() % (540 - 100) + 100);
+  predator.y = int2fix15(rand() % (380 - 100) + 100);
+  predator.vx = int2fix15((rand() % (MAX_SPEED - MIN_SPEED) + MIN_SPEED) - (MAX_SPEED + MIN_SPEED)*(rand()%2));
+  predator.vy = int2fix15((rand() % (MAX_SPEED - MIN_SPEED) + MIN_SPEED) - (MAX_SPEED + MIN_SPEED)*(rand()%2));
 }
 
 
@@ -165,6 +173,19 @@ void wallsAndEdges(fix15* x, fix15* y, fix15* vx, fix15* vy)
   }
 }
 
+
+//limit speed
+void limit_speed(fix15* vx, fix15* vy){
+  fix15 speed = sqrtfix(multfix15(*vx, *vx) + multfix15(*vy, *vy));
+  if(speed > int2fix15(MAX_SPEED)){
+    *vx = divfix(multfix15(*vx, int2fix15(MAX_SPEED)), speed);
+    *vy = divfix(multfix15(*vy, int2fix15(MAX_SPEED)), speed);
+  }
+  else if(speed < int2fix15(MIN_SPEED)){
+    *vx = divfix(multfix15(*vx, int2fix15(MIN_SPEED)), speed);
+    *vy = divfix(multfix15(*vy, int2fix15(MIN_SPEED)), speed);
+  }
+}
 
 // Update boid
 void update_boid(int i){
@@ -229,17 +250,36 @@ void update_boid(int i){
   *vx += multfix15(close_dx, avoidfactor);
   *vy += multfix15(close_dy, avoidfactor);
 
+  if(predatorMode){
+    fix15 dx = *x - predator.x;
+    fix15 dy = *y - predator.y;
+
+    if(dx < predatorRange && dy < predatorRange && dx > -predatorRange && dy > -predatorRange){
+      fix15 square_dist = (multfix15(dx, dx) + multfix15(dy, dy));
+
+      if(square_dist < multfix15(protectedrange,protectedrange)){
+        if(dy > 0){
+          *vy += predatorturnfactor;
+        }
+        if(dy < 0){
+          *vy -= predatorturnfactor;
+        }
+        if(dx > 0){
+          *vx += predatorturnfactor;
+        }
+        if(dx < 0){
+          *vx -= predatorturnfactor;
+        }
+      }
+    }
+    
+
+  }
+
+
   wallsAndEdges(x, y, vx, vy);
 
-  fix15 speed = sqrtfix(multfix15(*vx, *vx) + multfix15(*vy, *vy));
-  if(speed > int2fix15(MAX_SPEED)){
-    *vx = divfix(multfix15(*vx, int2fix15(MAX_SPEED)), speed);
-    *vy = divfix(multfix15(*vy, int2fix15(MAX_SPEED)), speed);
-  }
-  else if(speed < int2fix15(MIN_SPEED)){
-    *vx = divfix(multfix15(*vx, int2fix15(MIN_SPEED)), speed);
-    *vy = divfix(multfix15(*vy, int2fix15(MIN_SPEED)), speed);
-  }
+  limit_speed(vx, vy);
 
   *x += *vx;
   *y += *vy;
@@ -259,6 +299,19 @@ void update_boid(int i){
   // }
 }
 
+void update_predator(){
+  fix15 *x = &predator.x;
+  fix15 *y = &predator.y;
+  fix15 *vx = &predator.vx;
+  fix15 *vy = &predator.vy;
+
+  wallsAndEdges(x, y, vx, vy);
+  limit_speed(vx, vy);
+
+  *x += *vx;
+  *y += *vy;
+
+}
 
 // ==================================================
 // === users serial input thread
@@ -318,6 +371,15 @@ static PT_THREAD (protothread_anim(struct pt *pt))
     while(1) {
       // Measure time at start of thread
       begin_time = time_us_32() ;    
+
+      // erase the predator
+      drawRect(fix2int15(predator.x), fix2int15(predator.y), 2, 2, BLACK);
+      // update predator's position and velocity
+      update_predator();
+      // draw the predator at its new position
+      drawRect(fix2int15(predator.x), fix2int15(predator.y), 2, 2, predatorMode?RED:BLACK);
+
+
       for (int i = 0; i < NUM_OF_BOIDS_ON_CORE0; i++){
         // erase boid
         drawRect(fix2int15(boids[i].x), fix2int15(boids[i].y), 2, 2, BLACK);
