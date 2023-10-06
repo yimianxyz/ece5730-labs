@@ -355,14 +355,37 @@ static PT_THREAD (protothread_serial(struct pt *pt))
         sscanf( pt_serial_in_buffer, "%f", &user_input);
         
         if(f_user_input != user_input){
+
           if(uiSelected == 0){
             wallMode = float2fix15(user_input);
           }
           else if(uiSelected == 1){
+            visualrange = float2fix15(user_input);
+          }
+          else if(uiSelected == 2){
+            protectedrange = float2fix15(user_input);
+          }
+          else if(uiSelected == 3){
+            centeringfactor = float2fix15(user_input);
+          }
+          else if(uiSelected == 4){
             avoidfactor = float2fix15(user_input);
           }
+          else if(uiSelected == 5){
+            matcingfactor = float2fix15(user_input);
+          }
+          else if(uiSelected == 6){
+            predatorMode = float2fix15(user_input);
+          }
+          else if(uiSelected == 7){
+            predatorturnfactor = float2fix15(user_input);
+          }
+          else if(uiSelected == 8){
+            predatorRange = float2fix15(user_input);
+          }
+
         } else {
-          uiSelected = (uiSelected + 1) % 2;
+          uiSelected = (uiSelected + 1) % 9;
         }
 
         uiRefreshDone = 0;
@@ -436,14 +459,51 @@ static PT_THREAD (protothread_anim(struct pt *pt))
 
       if(!uiRefreshDone){
         printf("\x1b[2J\x1b[1;1H");
+
         if(uiSelected == 0){
           printf("->");
         }
         printf("Wall Mode: %d\n", fix2int15(wallMode));
+
         if(uiSelected == 1){
           printf("->");
         }
+        printf("Visual Range: %f\n", fix2float15(visualrange));
+
+        if(uiSelected == 2){
+          printf("->");
+        }
+        printf("Protected Range: %f\n", fix2float15(protectedrange));
+
+        if(uiSelected == 3){
+          printf("->");
+        }
+        printf("Centering Factor: %f\n", fix2float15(centeringfactor));
+
+        if(uiSelected == 4){
+          printf("->");
+        }
         printf("Avoid Factor: %f\n", fix2float15(avoidfactor));
+
+        if(uiSelected == 5){
+          printf("->");
+        }
+        printf("Matching Factor: %f\n", fix2float15(matcingfactor));
+
+        if(uiSelected == 6){
+          printf("->");
+        }
+        printf("Predator Mode: %d\n", fix2int15(predatorMode));
+
+        if(uiSelected == 7){
+          printf("->");
+        }
+        printf("Predator Turn Factor: %f\n", fix2float15(predatorturnfactor));
+
+        if(uiSelected == 8){
+          printf("->");
+        }
+        printf("Predator Range: %f\n", fix2float15(predatorRange));
 
 
 
