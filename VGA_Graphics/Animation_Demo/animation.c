@@ -62,8 +62,8 @@ typedef signed int fix15 ;
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 480
 
-#define NUM_OF_BOIDS 50
-#define NUM_OF_BOIDS_ON_CORE0 25
+#define NUM_OF_BOIDS 150
+#define NUM_OF_BOIDS_ON_CORE0 75
 
 
 // Wall detection
@@ -257,17 +257,17 @@ void update_boid(int i){
     if(dx < predatorRange && dy < predatorRange && dx > -predatorRange && dy > -predatorRange){
       fix15 square_dist = (multfix15(dx, dx) + multfix15(dy, dy));
 
-      if(square_dist < multfix15(protectedrange,protectedrange)){
-        if(dy > 0){
+      if(square_dist < multfix15(predatorRange,predatorRange)){
+        if(dy > int2fix15(0)){
           *vy += predatorturnfactor;
         }
-        if(dy < 0){
+        if(dy < int2fix15(0)){
           *vy -= predatorturnfactor;
         }
-        if(dx > 0){
+        if(dx > int2fix15(0)){
           *vx += predatorturnfactor;
         }
-        if(dx < 0){
+        if(dx < int2fix15(0)){
           *vx -= predatorturnfactor;
         }
       }
@@ -373,11 +373,11 @@ static PT_THREAD (protothread_anim(struct pt *pt))
       begin_time = time_us_32() ;    
 
       // erase the predator
-      drawRect(fix2int15(predator.x), fix2int15(predator.y), 2, 2, BLACK);
+      drawRect(fix2int15(predator.x), fix2int15(predator.y), 4, 4, BLACK);
       // update predator's position and velocity
       update_predator();
       // draw the predator at its new position
-      drawRect(fix2int15(predator.x), fix2int15(predator.y), 2, 2, predatorMode?RED:BLACK);
+      drawRect(fix2int15(predator.x), fix2int15(predator.y), 4, 4, predatorMode?RED:BLACK);
 
 
       for (int i = 0; i < NUM_OF_BOIDS_ON_CORE0; i++){
