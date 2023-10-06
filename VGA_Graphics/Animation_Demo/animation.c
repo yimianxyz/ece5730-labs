@@ -501,6 +501,8 @@ void core1_main(){
 int main(){
   // initialize stio
   stdio_init_all() ;
+  const uint32_t sys_clock = 250000;
+  set_sys_clock_khz(sys_clock, true);
 
   // initialize VGA
   initVGA() ;
