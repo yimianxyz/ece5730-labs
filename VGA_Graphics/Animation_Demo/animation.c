@@ -99,6 +99,17 @@ fix15 matcingfactor = float2fix15(0.05);
 fix15 predatorturnfactor = float2fix15(0.5);
 fix15 predatorRange = float2fix15(100);
 
+// min and max functions
+
+static inline fix15 max(fix15 a, fix15 b) {
+  return (a > b ) ? a : b;
+}
+
+static inline fix15 min(fix15 a, fix15 b) {
+  return (a > b ) ? b : a;
+}
+
+
 // Boid struct
 typedef struct boid{
   fix15 x;
@@ -176,7 +187,11 @@ void wallsAndEdges(fix15* x, fix15* y, fix15* vx, fix15* vy)
 
 //limit speed
 void limit_speed(fix15* vx, fix15* vy){
-  fix15 speed = sqrtfix(multfix15(*vx, *vx) + multfix15(*vy, *vy));
+  //get rid of sqrt function, use Alpha max plus beta min instead.
+  //alpha : 1
+  //beta  : 1/4 (right shift 2)
+  //fix15 speed = sqrtfix(multfix15(*vx, *vx) + multfix15(*vy, *vy));
+  fix15 speed = max(*vx, *vy) + (min(*vx, *vy) >> 2); 
   if(speed > int2fix15(MAX_SPEED)){
     *vx = divfix(multfix15(*vx, int2fix15(MAX_SPEED)), speed);
     *vy = divfix(multfix15(*vy, int2fix15(MAX_SPEED)), speed);
