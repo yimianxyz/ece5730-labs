@@ -99,6 +99,11 @@ fix15 matcingfactor = float2fix15(0.05);
 fix15 predatorturnfactor = float2fix15(0.5);
 fix15 predatorRange = float2fix15(100);
 
+
+// alpha max beta min parameters
+fix15 alpha = float2fix15(0.96);
+fix15 beta = float2fix15(0.398);
+
 // min and max functions
 
 static inline fix15 max(fix15 a, fix15 b) {
@@ -191,7 +196,7 @@ void limit_speed(fix15* vx, fix15* vy){
   //alpha : 1
   //beta  : 1/4 (right shift 2)
   //fix15 speed = sqrtfix(multfix15(*vx, *vx) + multfix15(*vy, *vy));
-  fix15 speed = max(*vx, *vy) + (min(*vx, *vy) >> 2); 
+  fix15 speed = multfix15(max(absfix15(*vx), absfix15(*vy)), alpha)  + multfix15(min(absfix15(*vx), absfix15(*vy)), beta); 
   if(speed > int2fix15(MAX_SPEED)){
     *vx = divfix(multfix15(*vx, int2fix15(MAX_SPEED)), speed);
     *vy = divfix(multfix15(*vy, int2fix15(MAX_SPEED)), speed);
