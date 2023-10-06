@@ -62,8 +62,8 @@ typedef signed int fix15 ;
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 480
 
-#define NUM_OF_BOIDS 150
-#define NUM_OF_BOIDS_ON_CORE0 75
+#define NUM_OF_BOIDS 500
+#define NUM_OF_BOIDS_ON_CORE0 240
 
 
 // Wall detection
@@ -87,7 +87,7 @@ int uiRefreshDone = 0;
 
 // modes
 fix15 wallMode = int2fix15(0);
-fix15 predatorMode = int2fix15(1);
+fix15 predatorMode = int2fix15(0);
 
 //factors
 fix15 turnfactor = float2fix15(0.2);
@@ -128,6 +128,8 @@ boid boids[NUM_OF_BOIDS];
 boid predator;
 
 char str[40];
+
+int g_core1_spare_time = 0;
 
 // Init boids
 void initBoids(){
@@ -344,7 +346,7 @@ static PT_THREAD (protothread_serial(struct pt *pt))
     // wait for 0.1 sec
     PT_YIELD_usec(1000000) ;
     // announce the threader version
-    sprintf(pt_serial_out_buffer, "Protothreads RP2040 v1.0\n\r");
+    // sprintf(pt_serial_out_buffer, "Protothreads RP2040 v1.0\n\r");
     // non-blocking write
     serial_write ;
       while(1) {
@@ -437,7 +439,7 @@ static PT_THREAD (protothread_anim(struct pt *pt))
       spare_time = FRAME_RATE - (time_us_32() - begin_time) ;
 
 
-      setTextColor(WHITE) ;
+      setTextColor2(WHITE, BLACK) ;
       sprintf(str, "%d",NUM_OF_BOIDS);
       setCursor(65, 0) ;
       setTextSize(1) ;
@@ -451,16 +453,18 @@ static PT_THREAD (protothread_anim(struct pt *pt))
 
       setCursor(65, 20) ;
       writeString("Elapsed time:") ;
-      setTextColor(BLACK) ;
-      sprintf(str, "%d",time_us_32()/1000000-1);
-      writeString(str) ;
-
-      setTextColor(WHITE) ;
       sprintf(str, "%d",time_us_32()/1000000);
-      setCursor(65, 20) ;
-      writeString("Elapsed time:") ;
       writeString(str) ;
 
+      setCursor(65, 30) ;
+      writeString("Spare time 0:") ;
+      sprintf(str, "%d",spare_time);
+      writeString(str) ;
+
+      setCursor(65, 40) ;
+      writeString("Spare time 1:") ;
+      sprintf(str, "%d",g_core1_spare_time);
+      writeString(str) ;
 
       if(!uiRefreshDone){
         printf("\x1b[2J\x1b[1;1H");
@@ -557,6 +561,9 @@ static PT_THREAD (protothread_anim1(struct pt *pt))
       // // delay in accordance with frame rate
       spare_time = FRAME_RATE - (time_us_32() - begin_time) ;
       // // yield for necessary amount of time
+
+      g_core1_spare_time = spare_time;
+
       PT_YIELD_usec(spare_time) ;
      // NEVER exit while
     } // END WHILE(1)
@@ -580,9 +587,10 @@ void core1_main(){
 // USE ONLY C-sdk library
 int main(){
   // initialize stio
-  stdio_init_all() ;
   const uint32_t sys_clock = 250000;
-  //set_sys_clock_khz(sys_clock, true);
+  set_sys_clock_khz(sys_clock, true);
+  stdio_init_all() ;
+  
 
   // initialize VGA
   initVGA() ;
