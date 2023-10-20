@@ -43,6 +43,9 @@
 
 // Arrays in which raw measurements will be stored
 fix15 acceleration[3], gyro[3];
+fix15 complementary_angle = int2fix15(0);
+fix15 accel_angle = int2fix15(0);
+fix15 gyro_angle_delta = int2fix15(0);
 
 // character array
 char screentext[40];
@@ -63,6 +66,10 @@ static struct pt_sem vga_semaphore ;
 #define CLKDIV  25.0
 uint slice_num ;
 
+// PWM duty cycle
+volatile int control ;
+volatile int old_control ;
+
 // Interrupt service routine
 void on_pwm_wrap() {
 
@@ -74,6 +81,18 @@ void on_pwm_wrap() {
     // If you want these values in floating point, call fix2float15() on
     // the raw measurements.
     mpu6050_read_raw(acceleration, gyro);
+
+    accel_angle = multfix15(divfix(acceleration[0], acceleration[1]), oneeightyoverpi);
+
+    gyro_angle_delta = multfix15(gyro[2], zeropt001);
+
+    complementary_angle = multfix15(complementary_angle - gyro_angle_delta, zeropt999) + multfix15(accel_angle, zeropt001);
+
+    // Update duty cycle
+    if (control!=old_control) {
+        old_control = control ;
+        pwm_set_chan_level(slice_num, PWM_CHAN_B, control);
+    }
 
     // Signal VGA to draw
     PT_SEM_SIGNAL(pt, &vga_semaphore);
@@ -89,10 +108,10 @@ static PT_THREAD (protothread_vga(struct pt *pt))
     static int xcoord = 81 ;
     
     // Rescale the measurements for display
-    static float OldRange = 500. ; // (+/- 250)
+    static float OldRange = 4.3 ; // (+/- 250)
     static float NewRange = 150. ; // (looks nice on VGA)
-    static float OldMin = -250. ;
-    static float OldMax = 250. ;
+    static float OldMin = 3.3 ;
+    static float OldMax = 7.6 ;
 
     // Control rate of drawing
     static int throttle ;
@@ -106,13 +125,13 @@ static PT_THREAD (protothread_vga(struct pt *pt))
     drawHLine(75, 355, 5, CYAN) ;
     drawHLine(75, 280, 5, CYAN) ;
     drawVLine(80, 280, 150, CYAN) ;
-    sprintf(screentext, "0") ;
+    sprintf(screentext, "180") ;
     setCursor(50, 350) ;
     writeString(screentext) ;
-    sprintf(screentext, "+2") ;
+    sprintf(screentext, "90") ;
     setCursor(50, 280) ;
     writeString(screentext) ;
-    sprintf(screentext, "-2") ;
+    sprintf(screentext, "0") ;
     setCursor(50, 425) ;
     writeString(screentext) ;
 
@@ -121,13 +140,13 @@ static PT_THREAD (protothread_vga(struct pt *pt))
     drawHLine(75, 155, 5, CYAN) ;
     drawHLine(75, 80, 5, CYAN) ;
     drawVLine(80, 80, 150, CYAN) ;
-    sprintf(screentext, "0") ;
+    sprintf(screentext, "250") ;
     setCursor(50, 150) ;
     writeString(screentext) ;
-    sprintf(screentext, "+250") ;
+    sprintf(screentext, "5000") ;
     setCursor(45, 75) ;
     writeString(screentext) ;
-    sprintf(screentext, "-250") ;
+    sprintf(screentext, "0") ;
     setCursor(45, 225) ;
     writeString(screentext) ;
     
@@ -146,14 +165,23 @@ static PT_THREAD (protothread_vga(struct pt *pt))
             drawVLine(xcoord, 0, 480, BLACK) ;
 
             // Draw bottom plot (multiply by 120 to scale from +/-2 to +/-250)
-            drawPixel(xcoord, 430 - (int)(NewRange*((float)((fix2float15(acceleration[0])*120.0)-OldMin)/OldRange)), WHITE) ;
-            drawPixel(xcoord, 430 - (int)(NewRange*((float)((fix2float15(acceleration[1])*120.0)-OldMin)/OldRange)), RED) ;
-            drawPixel(xcoord, 430 - (int)(NewRange*((float)((fix2float15(acceleration[2])*120.0)-OldMin)/OldRange)), GREEN) ;
+            // drawPixel(xcoord, 430 - (int)(NewRange*((float)((fix2float15(acceleration[0])*120.0)-OldMin)/OldRange)), WHITE) ;
+            // drawPixel(xcoord, 430 - (int)(NewRange*((float)((fix2float15(acceleration[1])*120.0)-OldMin)/OldRange)), RED) ;
+            // drawPixel(xcoord, 430 - (int)(NewRange*((float)((fix2float15(acceleration[2])*120.0)-OldMin)/OldRange)), GREEN) ;
+
+            drawPixel(xcoord, 430 - (int)(NewRange*((float)((OldMax - (fix2float15(complementary_angle)))-OldMin)/OldRange)), GREEN) ;
+
+            //printf("%f\n", fix2float15(complementary_angle));
+
+           
 
             // Draw top plot
-            drawPixel(xcoord, 230 - (int)(NewRange*((float)((fix2float15(gyro[0]))-OldMin)/OldRange)), WHITE) ;
-            drawPixel(xcoord, 230 - (int)(NewRange*((float)((fix2float15(gyro[1]))-OldMin)/OldRange)), RED) ;
-            drawPixel(xcoord, 230 - (int)(NewRange*((float)((fix2float15(gyro[2]))-OldMin)/OldRange)), GREEN) ;
+            // drawPixel(xcoord, 230 - (int)(NewRange*((float)((fix2float15(gyro[0]))-OldMin)/OldRange)), WHITE) ;
+            // drawPixel(xcoord, 230 - (int)(NewRange*((float)((fix2float15(gyro[1]))-OldMin)/OldRange)), RED) ;
+            // drawPixel(xcoord, 230 - (int)(NewRange*((float)((fix2float15(gyro[2]))-OldMin)/OldRange)), GREEN) ;
+            drawPixel(xcoord, 230 - (int)(NewRange*((float)(control-0)/5000)), GREEN) ;
+
+
 
             // Update horizontal cursor
             if (xcoord < 609) {
@@ -176,24 +204,34 @@ static PT_THREAD (protothread_serial(struct pt *pt))
     static int test_in ;
     static float float_in ;
     while(1) {
-        sprintf(pt_serial_out_buffer, "input a command: ");
+        // sprintf(pt_serial_out_buffer, "input a command: ");
+        // serial_write ;
+        // // spawn a thread to do the non-blocking serial read
+        // serial_read ;
+        // // convert input string to number
+        // sscanf(pt_serial_in_buffer,"%c", &classifier) ;
+
+        // // num_independents = test_in ;
+        // if (classifier=='t') {
+        //     sprintf(pt_serial_out_buffer, "timestep: ");
+        //     serial_write ;
+        //     serial_read ;
+        //     // convert input string to number
+        //     sscanf(pt_serial_in_buffer,"%d", &test_in) ;
+        //     if (test_in > 0) {
+        //         threshold = test_in ;
+        //     }
+        // }
+
+        sprintf(pt_serial_out_buffer, "input a duty cycle (0-5000): ");
         serial_write ;
         // spawn a thread to do the non-blocking serial read
         serial_read ;
         // convert input string to number
-        sscanf(pt_serial_in_buffer,"%c", &classifier) ;
-
-        // num_independents = test_in ;
-        if (classifier=='t') {
-            sprintf(pt_serial_out_buffer, "timestep: ");
-            serial_write ;
-            serial_read ;
-            // convert input string to number
-            sscanf(pt_serial_in_buffer,"%d", &test_in) ;
-            if (test_in > 0) {
-                threshold = test_in ;
-            }
-        }
+        sscanf(pt_serial_in_buffer,"%d", &test_in) ;
+        if (test_in > 5000) continue ;
+        else if (test_in < 0) continue ;
+        else control = test_in ;
     }
     PT_END(pt) ;
 }
