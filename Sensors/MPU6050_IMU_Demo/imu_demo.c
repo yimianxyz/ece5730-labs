@@ -73,6 +73,7 @@ uint slice_num ;
 // PWM duty cycle
 volatile int control ;
 volatile int old_control ;
+volatile int motor_disp ;
 
 // Interrupt service routine
 void on_pwm_wrap() {
@@ -87,11 +88,11 @@ void on_pwm_wrap() {
     mpu6050_read_raw(acceleration, gyro);
 
     // accel_angle = multfix15(divfix(acceleration[0], acceleration[1]), oneeightyoverpi);
-    filt_ax = filt_ax + (acceleration[0] - filt_ax) >> 4;
-    filt_ay = filt_ay + (acceleration[1] - filt_ay) >> 4;
+    filt_ax = filt_ax + (acceleration[1] - filt_ax) >> 4;
+    filt_ay = filt_ay + (acceleration[2] - filt_ay) >> 4;
     accel_angle = multfix15(float2fix15(atan2(-filt_ax, filt_ay)) + float2fix15(M_PI), oneeightyoverpi);
 
-    gyro_angle_delta = multfix15(gyro[1], zeropt001);
+    gyro_angle_delta = multfix15(gyro[0], zeropt001);
 
     complementary_angle = multfix15(complementary_angle - gyro_angle_delta, zeropt999) + multfix15(accel_angle, zeropt001);
 
@@ -100,6 +101,8 @@ void on_pwm_wrap() {
         old_control = control ;
         pwm_set_chan_level(slice_num, PWM_CHAN_B, control);
     }
+
+    motor_disp += (control - motor_disp) >> 6;
 
     // Signal VGA to draw
     PT_SEM_SIGNAL(pt, &vga_semaphore);
@@ -115,10 +118,10 @@ static PT_THREAD (protothread_vga(struct pt *pt))
     static int xcoord = 81 ;
     
     // Rescale the measurements for display
-    static float OldRange = 4.3 ; // (+/- 250)
+    static float OldRange = 200. ; // (+/- 250)
     static float NewRange = 150. ; // (looks nice on VGA)
-    static float OldMin = 3.3 ;
-    static float OldMax = 7.6 ;
+    static float OldMin = 80. ;
+    static float OldMax = 280. ;
 
     // Control rate of drawing
     static int throttle ;
@@ -170,7 +173,7 @@ static PT_THREAD (protothread_vga(struct pt *pt))
 
             //write string on VGA
             setTextColor2(WHITE, BLACK) ;
-            sprintf(str, "%f", fix2float15(complementary_angle));
+            sprintf(str, "%f", fix2float15(complementary_angle)-OldMin);
             setCursor(65, 0) ;
             setTextSize(1) ;
             writeString("complementary angle:") ;
@@ -184,7 +187,7 @@ static PT_THREAD (protothread_vga(struct pt *pt))
             // drawPixel(xcoord, 430 - (int)(NewRange*((float)((fix2float15(acceleration[1])*120.0)-OldMin)/OldRange)), RED) ;
             // drawPixel(xcoord, 430 - (int)(NewRange*((float)((fix2float15(acceleration[2])*120.0)-OldMin)/OldRange)), GREEN) ;
 
-            drawPixel(xcoord, 430 - (int)(NewRange*((float)((OldMax - (fix2float15(complementary_angle)))-OldMin)/OldRange)), RED) ;
+            drawPixel(xcoord, 430 - (int)(0.75*((float)((fix2float15(complementary_angle))-OldMin))), RED) ;
 
             //printf("%f\n", fix2float15(complementary_angle));
 
@@ -194,7 +197,7 @@ static PT_THREAD (protothread_vga(struct pt *pt))
             // drawPixel(xcoord, 230 - (int)(NewRange*((float)((fix2float15(gyro[0]))-OldMin)/OldRange)), WHITE) ;
             // drawPixel(xcoord, 230 - (int)(NewRange*((float)((fix2float15(gyro[1]))-OldMin)/OldRange)), RED) ;
             // drawPixel(xcoord, 230 - (int)(NewRange*((float)((fix2float15(gyro[2]))-OldMin)/OldRange)), GREEN) ;
-            drawPixel(xcoord, 230 - (int)(NewRange*((float)(control-0)/5000)), GREEN) ;
+            drawPixel(xcoord, 230 - (int)(NewRange*((float)(motor_disp-0)/5000)), GREEN) ;
 
 
 
