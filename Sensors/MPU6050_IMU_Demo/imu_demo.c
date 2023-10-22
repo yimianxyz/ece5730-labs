@@ -46,12 +46,16 @@ fix15 acceleration[3], gyro[3];
 fix15 complementary_angle = int2fix15(0);
 fix15 accel_angle = int2fix15(0);
 fix15 gyro_angle_delta = int2fix15(0);
+fix15 filt_ax =  int2fix15(0);
+fix15 filt_ay =  int2fix15(0);
 
 // character array
 char screentext[40];
 
 // draw speed
 int threshold = 10 ;
+
+char str[40];
 
 // Some macros for max/min/abs
 #define min(a,b) ((a<b) ? a:b)
@@ -82,9 +86,12 @@ void on_pwm_wrap() {
     // the raw measurements.
     mpu6050_read_raw(acceleration, gyro);
 
-    accel_angle = multfix15(divfix(acceleration[0], acceleration[1]), oneeightyoverpi);
+    // accel_angle = multfix15(divfix(acceleration[0], acceleration[1]), oneeightyoverpi);
+    filt_ax = filt_ax + (acceleration[0] - filt_ax) >> 4;
+    filt_ay = filt_ay + (acceleration[1] - filt_ay) >> 4;
+    accel_angle = multfix15(float2fix15(atan2(-filt_ax, filt_ay)) + float2fix15(M_PI), oneeightyoverpi);
 
-    gyro_angle_delta = multfix15(gyro[2], zeropt001);
+    gyro_angle_delta = multfix15(gyro[1], zeropt001);
 
     complementary_angle = multfix15(complementary_angle - gyro_angle_delta, zeropt999) + multfix15(accel_angle, zeropt001);
 
@@ -125,10 +132,10 @@ static PT_THREAD (protothread_vga(struct pt *pt))
     drawHLine(75, 355, 5, CYAN) ;
     drawHLine(75, 280, 5, CYAN) ;
     drawVLine(80, 280, 150, CYAN) ;
-    sprintf(screentext, "180") ;
+    sprintf(screentext, "90") ;
     setCursor(50, 350) ;
     writeString(screentext) ;
-    sprintf(screentext, "90") ;
+    sprintf(screentext, "180") ;
     setCursor(50, 280) ;
     writeString(screentext) ;
     sprintf(screentext, "0") ;
@@ -140,13 +147,13 @@ static PT_THREAD (protothread_vga(struct pt *pt))
     drawHLine(75, 155, 5, CYAN) ;
     drawHLine(75, 80, 5, CYAN) ;
     drawVLine(80, 80, 150, CYAN) ;
-    sprintf(screentext, "250") ;
+    sprintf(screentext, "") ;
     setCursor(50, 150) ;
     writeString(screentext) ;
-    sprintf(screentext, "5000") ;
+    sprintf(screentext, "MAX") ;
     setCursor(45, 75) ;
     writeString(screentext) ;
-    sprintf(screentext, "0") ;
+    sprintf(screentext, "MIN") ;
     setCursor(45, 225) ;
     writeString(screentext) ;
     
@@ -161,6 +168,14 @@ static PT_THREAD (protothread_vga(struct pt *pt))
             // Zero drawspeed controller
             throttle = 0 ;
 
+            //write string on VGA
+            setTextColor2(WHITE, BLACK) ;
+            sprintf(str, "%f", fix2float15(complementary_angle));
+            setCursor(65, 0) ;
+            setTextSize(1) ;
+            writeString("complementary angle:") ;
+            writeString(str) ;
+
             // Erase a column
             drawVLine(xcoord, 0, 480, BLACK) ;
 
@@ -169,7 +184,7 @@ static PT_THREAD (protothread_vga(struct pt *pt))
             // drawPixel(xcoord, 430 - (int)(NewRange*((float)((fix2float15(acceleration[1])*120.0)-OldMin)/OldRange)), RED) ;
             // drawPixel(xcoord, 430 - (int)(NewRange*((float)((fix2float15(acceleration[2])*120.0)-OldMin)/OldRange)), GREEN) ;
 
-            drawPixel(xcoord, 430 - (int)(NewRange*((float)((OldMax - (fix2float15(complementary_angle)))-OldMin)/OldRange)), GREEN) ;
+            drawPixel(xcoord, 430 - (int)(NewRange*((float)((OldMax - (fix2float15(complementary_angle)))-OldMin)/OldRange)), RED) ;
 
             //printf("%f\n", fix2float15(complementary_angle));
 
