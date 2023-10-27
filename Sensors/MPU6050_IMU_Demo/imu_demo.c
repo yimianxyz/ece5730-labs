@@ -57,6 +57,15 @@ int threshold = 10 ;
 
 char str[40];
 
+fix15 Kp = int2fix15(150);
+fix15 Ki = float2fix15(0.2);
+fix15 Kd = int2fix15(20000);
+fix15 desired_angle = int2fix15(30);
+fix15 error_ang = 0;
+fix15 last_error = 0;
+fix15 integral_cntl = 0;
+fix15 I_MAX = int2fix15(2500);
+
 // Some macros for max/min/abs
 #define min(a,b) ((a<b) ? a:b)
 #define max(a,b) ((a<b) ? b:a)
@@ -74,6 +83,11 @@ uint slice_num ;
 volatile int control ;
 volatile int old_control ;
 volatile int motor_disp ;
+const int CONTROL_MAX = 5000;
+const int CONTROL_MIN = 0;
+
+
+
 
 // Interrupt service routine
 void on_pwm_wrap() {
@@ -95,6 +109,33 @@ void on_pwm_wrap() {
     gyro_angle_delta = multfix15(gyro[0], zeropt001);
 
     complementary_angle = multfix15(complementary_angle - gyro_angle_delta, zeropt999) + multfix15(accel_angle, zeropt001);
+
+    last_error = error_ang;
+
+    error_ang = desired_angle - complementary_angle + int2fix15(80); //oldMin
+
+    integral_cntl = integral_cntl + error_ang;
+
+    if( (error_ang < int2fix15(0) && last_error >= int2fix15(0) ) || (error_ang >= int2fix15(0) && last_error < int2fix15(0) ) ){
+        if(integral_cntl > 20000){
+            integral_cntl = 0;
+        }
+    }
+
+    if(integral_cntl > I_MAX){
+        integral_cntl = I_MAX;
+    }
+    if(integral_cntl < -I_MAX){
+        integral_cntl = -I_MAX;
+    }
+
+    control = fix2int15(multfix15(Kp,error_ang)) + fix2int15(multfix15(Kd, error_ang - last_error)) + fix2int15(multfix15(Ki, integral_cntl));
+
+    if(control > CONTROL_MAX){
+        control = CONTROL_MAX;
+    } else if(control < CONTROL_MIN){
+        control = CONTROL_MIN;
+    }
 
     // Update duty cycle
     if (control!=old_control) {
@@ -173,7 +214,8 @@ static PT_THREAD (protothread_vga(struct pt *pt))
 
             //write string on VGA
             setTextColor2(WHITE, BLACK) ;
-            sprintf(str, "%f", fix2float15(complementary_angle)-OldMin);
+            //sprintf(str, "%f", fix2float15(complementary_angle)-OldMin);
+            sprintf(str, "%f", fix2float15(integral_cntl));
             setCursor(65, 0) ;
             setTextSize(1) ;
             writeString("complementary angle:") ;
@@ -219,38 +261,59 @@ static PT_THREAD (protothread_serial(struct pt *pt))
 {
     PT_BEGIN(pt) ;
     static char classifier ;
-    static int test_in ;
-    static float float_in ;
-    while(1) {
-        // sprintf(pt_serial_out_buffer, "input a command: ");
-        // serial_write ;
-        // // spawn a thread to do the non-blocking serial read
-        // serial_read ;
-        // // convert input string to number
-        // sscanf(pt_serial_in_buffer,"%c", &classifier) ;
+    static float user_input ;
+    static float f_user_input ;
+    static int uiSelected = 0;
+      while(1) {
 
-        // // num_independents = test_in ;
-        // if (classifier=='t') {
-        //     sprintf(pt_serial_out_buffer, "timestep: ");
-        //     serial_write ;
-        //     serial_read ;
-        //     // convert input string to number
-        //     sscanf(pt_serial_in_buffer,"%d", &test_in) ;
-        //     if (test_in > 0) {
-        //         threshold = test_in ;
-        //     }
-        // }
 
-        sprintf(pt_serial_out_buffer, "input a duty cycle (0-5000): ");
+        printf("\n\nDesired Angle: %f\n", fix2float15(desired_angle));
+        printf("Kp: %f\n", fix2float15(Kp));
+        printf("Ki: %f\n", fix2float15(Ki));
+        printf("Kd: %f\n", fix2float15(Kd));
+        if(uiSelected == 0){
+            printf("desired_angle = ");
+        }
+        else if(uiSelected == 1){
+            printf("Kp = ");
+        }
+        else if(uiSelected == 2){
+            printf("Ki = ");
+        }
+        else if(uiSelected == 3){
+            printf("Kd = ");
+        }
+
+        // print prompt
+        // sprintf(pt_serial_out_buffer, "\n\ninput a new value = ");
+        // non-blocking write
         serial_write ;
         // spawn a thread to do the non-blocking serial read
         serial_read ;
-        // convert input string to number
-        sscanf(pt_serial_in_buffer,"%d", &test_in) ;
-        if (test_in > 5000) continue ;
-        else if (test_in < 0) continue ;
-        else control = test_in ;
-    }
+        f_user_input = user_input ;
+        // convert input string to floating point number
+        sscanf( pt_serial_in_buffer, "%f", &user_input);
+        
+        if(f_user_input != user_input){
+
+          if(uiSelected == 0){
+            desired_angle = float2fix15(user_input);
+          }
+          else if(uiSelected == 1){
+            Kp = float2fix15(user_input);
+          }
+          else if(uiSelected == 2){
+            Ki = float2fix15(user_input);
+          }
+          else if(uiSelected == 3){
+            Kd = float2fix15(user_input);
+          }
+
+        } else {
+          uiSelected = (uiSelected + 1) % 4;
+        }
+      } // END WHILE(1)
+
     PT_END(pt) ;
 }
 
