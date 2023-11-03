@@ -87,7 +87,7 @@ volatile int motor_disp ;
 const int CONTROL_MAX = 5000;
 const int CONTROL_MIN = 0;
 
-unit32_t start_time = 0;
+uint32_t start_time = 0;
 
 
 void gpio_callback(uint gpio, uint32_t events) {
