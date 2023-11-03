@@ -94,7 +94,7 @@ void gpio_callback(uint gpio, uint32_t events) {
         desired_angle = int2fix15(0);
     } else if(events & GPIO_IRQ_EDGE_RISE){
         printf("RISING EDGE\n");
-        desired_angle = int2fix15(30)
+        desired_angle = int2fix15(30);
     }
 }
 
