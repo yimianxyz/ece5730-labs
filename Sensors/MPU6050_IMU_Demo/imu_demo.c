@@ -87,28 +87,30 @@ volatile int motor_disp ;
 const int CONTROL_MAX = 5000;
 const int CONTROL_MIN = 0;
 
+unit32_t start_time = 0;
 
 
 void gpio_callback(uint gpio, uint32_t events) {
-    static struct pt pt_gpio_callback;
-    PT_BEGIN(&pt_gpio_callback);
-
     if(events & GPIO_IRQ_EDGE_FALL){
         // printf("FALLING EDGE\n");
+        start_time = 0;
         desired_angle = int2fix15(0);
     } else if(events & GPIO_IRQ_EDGE_RISE){
         // printf("RISING EDGE\n");
         desired_angle = int2fix15(90);
-        PT_YIELD_usec(500000);
-        desired_angle = int2fix15(120);
-        PT_YIELD_usec(500000);
-        desired_angle = int2fix15(60);
-        PT_YIELD_usec(500000);
-        desired_angle = int2fix15(90);
-    }
+        start_time = time_us_32();
+        //sleep for 5 second
+        // sleep_ms(5000);
+        // desired_angle = int2fix15(120);
+        // sleep_ms(5000);
+        // desired_angle = int2fix15(60);
+        // sleep_ms(5000);
+        // desired_angle = int2fix15(90);
 
-    PT_END(&pt_gpio_callback);
+
+    }
 }
+
 
 
 // Interrupt service routine
@@ -122,6 +124,16 @@ void on_pwm_wrap() {
     // If you want these values in floating point, call fix2float15() on
     // the raw measurements.
     mpu6050_read_raw(acceleration, gyro);
+
+    if(start_time != 0){
+        if(time_us_32() - start_time > 5000000 && time_us_32() - start_time < 10000000){
+            desired_angle = int2fix15(120);
+        } else if(time_us_32() - start_time > 10000000 && time_us_32() - start_time < 15000000){
+            desired_angle = int2fix15(60);
+        } else if(time_us_32() - start_time > 15000000 && time_us_32() - start_time < 20000000){
+            desired_angle = int2fix15(90);
+        }
+    }
 
     // accel_angle = multfix15(divfix(acceleration[0], acceleration[1]), oneeightyoverpi);
     filt_ax = filt_ax + (acceleration[1] - filt_ax) >> 4;
