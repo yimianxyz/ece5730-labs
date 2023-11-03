@@ -88,13 +88,13 @@ const int CONTROL_MAX = 5000;
 const int CONTROL_MIN = 0;
 
 
-void gpio_callback() {
-    if(gpio_get(15) == 1){
-        printf("Button Pressed\n");
-        desired_angle = int2fix15(30);
-    } else {
-        printf("Button Released\n");
-        desired_angle = int2fix15(-30);
+void gpio_callback(uint gpio, uint32_t events) {
+    if(events & GPIO_IRQ_EDGE_FALL){
+        printf("FALLING EDGE\n");
+        desired_angle = int2fix15(0);
+    } else if(events & GPIO_IRQ_EDGE_RISE){
+        printf("RISING EDGE\n");
+        desired_angle = int2fix15(30)
     }
 }
 
@@ -342,7 +342,10 @@ int main() {
     // Initialize VGA
     initVGA() ;
 
-    gpio_set_irq_enabled_with_callback(15, GPIO_IRQ_EDGE_FALL, true, &gpio_callback);
+    gpio_init(15);
+    gpio_set_dir(15, GPIO_IN);
+    gpio_pull_up(15);
+    gpio_set_irq_enabled_with_callback(15, GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE, true, &gpio_callback);
 
     ////////////////////////////////////////////////////////////////////////
     ///////////////////////// I2C CONFIGURATION ////////////////////////////
