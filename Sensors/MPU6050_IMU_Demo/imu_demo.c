@@ -37,7 +37,6 @@
 #include "hardware/adc.h"
 #include "hardware/pio.h"
 #include "hardware/i2c.h"
-#include "hawrdware/gpio.h"
 // Include custom libraries
 #include "vga_graphics.h"
 #include "mpu6050.h"
