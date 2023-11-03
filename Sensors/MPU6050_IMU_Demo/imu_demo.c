@@ -112,7 +112,7 @@ void on_pwm_wrap() {
 
     last_error = error_ang;
 
-    error_ang = desired_angle - complementary_angle + int2fix15(80); //oldMin
+    error_ang = desired_angle - complementary_angle + int2fix15(85); //oldMin
 
     integral_cntl = integral_cntl + error_ang;
 
@@ -161,7 +161,7 @@ static PT_THREAD (protothread_vga(struct pt *pt))
     // Rescale the measurements for display
     static float OldRange = 200. ; // (+/- 250)
     static float NewRange = 150. ; // (looks nice on VGA)
-    static float OldMin = 80. ;
+    static float OldMin = 85. ;
     static float OldMax = 280. ;
 
     // Control rate of drawing
@@ -214,8 +214,8 @@ static PT_THREAD (protothread_vga(struct pt *pt))
 
             //write string on VGA
             setTextColor2(WHITE, BLACK) ;
-            //sprintf(str, "%f", fix2float15(complementary_angle)-OldMin);
-            sprintf(str, "%f", fix2float15(integral_cntl));
+            sprintf(str, "%f", fix2float15(complementary_angle)-OldMin);
+            // sprintf(str, "%f", fix2float15(integral_cntl));
             setCursor(65, 0) ;
             setTextSize(1) ;
             writeString("complementary angle:") ;
