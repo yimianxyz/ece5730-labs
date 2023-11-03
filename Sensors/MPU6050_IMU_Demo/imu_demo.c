@@ -90,11 +90,19 @@ const int CONTROL_MIN = 0;
 
 void gpio_callback(uint gpio, uint32_t events) {
     if(events & GPIO_IRQ_EDGE_FALL){
-        printf("FALLING EDGE\n");
+        // printf("FALLING EDGE\n");
         desired_angle = int2fix15(0);
     } else if(events & GPIO_IRQ_EDGE_RISE){
-        printf("RISING EDGE\n");
-        desired_angle = int2fix15(30);
+        // printf("RISING EDGE\n");
+        desired_angle = int2fix15(90);
+        //sleep for 5 second
+        sleep_ms(5000);
+        desired_angle = int2fix15(120);
+        sleep_ms(5000);
+        desired_angle = int2fix15(60);
+        sleep_ms(5000);
+        desired_angle = int2fix15(90);
+
     }
 }
 
