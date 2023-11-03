@@ -88,6 +88,11 @@ const int CONTROL_MAX = 5000;
 const int CONTROL_MIN = 0;
 
 
+void set_angle_with_delay(){
+    desired_angle = int2fix15(120);
+}
+
+
 void gpio_callback(uint gpio, uint32_t events) {
     if(events & GPIO_IRQ_EDGE_FALL){
         // printf("FALLING EDGE\n");
@@ -95,13 +100,15 @@ void gpio_callback(uint gpio, uint32_t events) {
     } else if(events & GPIO_IRQ_EDGE_RISE){
         // printf("RISING EDGE\n");
         desired_angle = int2fix15(90);
+        add_alarm_in_ms(5000, &set_angle_with_delay);
         //sleep for 5 second
-        sleep_ms(5000);
-        desired_angle = int2fix15(120);
-        sleep_ms(5000);
-        desired_angle = int2fix15(60);
-        sleep_ms(5000);
-        desired_angle = int2fix15(90);
+        // sleep_ms(5000);
+        // desired_angle = int2fix15(120);
+        // sleep_ms(5000);
+        // desired_angle = int2fix15(60);
+        // sleep_ms(5000);
+        // desired_angle = int2fix15(90);
+
 
     }
 }
