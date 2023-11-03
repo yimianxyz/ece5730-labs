@@ -89,14 +89,15 @@ const int CONTROL_MIN = 0;
 
 
 void gpio_callback() {
-    printf("rising edge\n");
-    desired_angle = int2fix15(0);
+    if(gpio_get(15) == 1){
+        printf("Button Pressed\n");
+        desired_angle = int2fix15(30);
+    } else {
+        printf("Button Released\n");
+        desired_angle = int2fix15(-30);
+    }
 }
 
-void gpio_callback2() {
-    printf("falling edge\n");
-    desired_angle = int2fix15(30);
-}
 
 
 // Interrupt service routine
@@ -342,8 +343,6 @@ int main() {
     initVGA() ;
 
     gpio_set_irq_enabled_with_callback(15, GPIO_IRQ_EDGE_RISE, true, &gpio_callback);
-    // 15 when fall edge call gpio_callback2
-    gpio_set_irq_enabled_with_callback(15, GPIO_IRQ_EDGE_FALL, true, &gpio_callback2);
 
     ////////////////////////////////////////////////////////////////////////
     ///////////////////////// I2C CONFIGURATION ////////////////////////////
