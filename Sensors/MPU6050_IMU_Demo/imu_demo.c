@@ -59,9 +59,9 @@ int threshold = 10 ;
 char str[40];
 
 fix15 Kp = int2fix15(150);
-fix15 Ki = float2fix15(0.2);
-fix15 Kd = int2fix15(20000);
-fix15 desired_angle = int2fix15(30);
+fix15 Ki = float2fix15(1.5);
+fix15 Kd = int2fix15(30000);
+fix15 desired_angle = int2fix15(0);
 fix15 error_ang = 0;
 fix15 last_error = 0;
 fix15 integral_cntl = 0;
