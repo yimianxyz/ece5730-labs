@@ -8,6 +8,7 @@
  * measurements.
  * 
  * HARDWARE CONNECTIONS
+ *  - GPIO 15 --> PUSHBUTTON
  *  - GPIO 16 ---> VGA Hsync
  *  - GPIO 17 ---> VGA Vsync
  *  - GPIO 18 ---> 330 ohm resistor ---> VGA Red
@@ -36,6 +37,7 @@
 #include "hardware/adc.h"
 #include "hardware/pio.h"
 #include "hardware/i2c.h"
+#include "hawrdware/gpio.h"
 // Include custom libraries
 #include "vga_graphics.h"
 #include "mpu6050.h"
@@ -87,6 +89,9 @@ const int CONTROL_MAX = 5000;
 const int CONTROL_MIN = 0;
 
 
+void gpio_callback() {
+    printf("Button pressed!\n");
+}
 
 
 // Interrupt service routine
@@ -330,6 +335,8 @@ int main() {
 
     // Initialize VGA
     initVGA() ;
+
+    gpio_set_irq_enabled_with_callback(15, GPIO_IRQ_EDGE_RISE, true, &gpio_callback);
 
     ////////////////////////////////////////////////////////////////////////
     ///////////////////////// I2C CONFIGURATION ////////////////////////////
