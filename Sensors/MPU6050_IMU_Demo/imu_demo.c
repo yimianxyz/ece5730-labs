@@ -88,31 +88,27 @@ const int CONTROL_MAX = 5000;
 const int CONTROL_MIN = 0;
 
 
-void set_angle_with_delay(){
-    desired_angle = int2fix15(120);
-}
-
 
 void gpio_callback(uint gpio, uint32_t events) {
+    static struct pt pt_gpio_callback;
+    PT_BEGIN(&pt_gpio_callback);
+
     if(events & GPIO_IRQ_EDGE_FALL){
         // printf("FALLING EDGE\n");
         desired_angle = int2fix15(0);
     } else if(events & GPIO_IRQ_EDGE_RISE){
         // printf("RISING EDGE\n");
         desired_angle = int2fix15(90);
-        add_alarm_in_ms(5000, &set_angle_with_delay);
-        //sleep for 5 second
-        // sleep_ms(5000);
-        // desired_angle = int2fix15(120);
-        // sleep_ms(5000);
-        // desired_angle = int2fix15(60);
-        // sleep_ms(5000);
-        // desired_angle = int2fix15(90);
-
-
+        PT_YIELD_usec(500000);
+        desired_angle = int2fix15(120);
+        PT_YIELD_usec(500000);
+        desired_angle = int2fix15(60);
+        PT_YIELD_usec(500000);
+        desired_angle = int2fix15(90);
     }
-}
 
+    PT_END(&pt_gpio_callback);
+}
 
 
 // Interrupt service routine
